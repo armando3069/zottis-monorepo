@@ -1,0 +1,19 @@
+{
+  "name": "zottis-monorepo",
+  "private": true,
+  "packageManager": "npm@10.5.0",
+
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:api": "turbo run dev --filter=api",
+    "build": "turbo run build",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^2.8.10"
+  }
+}
