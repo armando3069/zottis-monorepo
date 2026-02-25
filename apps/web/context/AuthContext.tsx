@@ -21,7 +21,6 @@ interface AuthContextValue {
   signup: (payload: SignupPayload) => Promise<void>;
   logout: () => void;
   startGoogleLogin: () => void;
-  loginWithSlack: () => void;
   loginWithToken: (token: string) => Promise<void>;
 }
 
@@ -70,10 +69,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authService.startGoogleLogin();
   }, []);
 
-  const loginWithSlack = useCallback(() => {
-    authService.startSlackLogin();
-  }, []);
-
   const loginWithToken = useCallback(async (token: string) => {
     authService.saveToken(token);
     resetSocket(); // discard any unauthenticated socket before fetching user
@@ -91,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         startGoogleLogin,
-        loginWithSlack,
         loginWithToken,
       }}
     >

@@ -86,21 +86,6 @@ export class AuthController {
     res.redirect(`${FRONTEND}/auth/callback?token=${token}`);
   }
 
-  // ─── Slack OAuth ───────────────────────────────────────────────────────────
-
-  /** Passport redirects the browser to Slack's OAuth consent screen. */
-  @Get('slack')
-  @UseGuards(AuthGuard('slack'))
-  slackLogin() {}
-
-  /** Slack redirects back here after the user authenticates. */
-  @Get('slack/callback')
-  @UseGuards(AuthGuard('slack'))
-  slackCallback(@Req() req: Request, @Res() res: Response) {
-    const token = this.authService.loginOAuth(req.user as any);
-    res.redirect(`${FRONTEND}/auth/callback?token=${token}`);
-  }
-
   // ─── Protected route example ───────────────────────────────────────────────
 
   /** Returns the currently authenticated user (from JWT). */
