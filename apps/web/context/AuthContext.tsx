@@ -22,6 +22,7 @@ interface AuthContextValue {
   logout: () => void;
   startGoogleLogin: () => void;
   loginWithSlack: () => void;
+  loginWithToken: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -31,6 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Skip the API call entirely when there is no token — avoids a
+    // failed /auth/me request on pages like /auth/callback that save
+    // the token themselves via loginWithToken().
+    if (!authService.getToken()) {
+      setIsLoading(false);
+      return;
+    }
     authService
       .getCurrentUser()
       .then(setUser)
@@ -66,6 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authService.startSlackLogin();
   }, []);
 
+  const loginWithToken = useCallback(async (token: string) => {
+    authService.saveToken(token);
+    resetSocket(); // discard any unauthenticated socket before fetching user
+    const me = await authService.getCurrentUser();
+    setUser(me);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -77,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         startGoogleLogin,
         loginWithSlack,
+        loginWithToken,
       }}
     >
       {children}
