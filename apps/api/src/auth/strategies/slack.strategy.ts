@@ -33,13 +33,14 @@ export class SlackStrategy extends PassportStrategy(Strategy, 'slack', true) {
     super({
       clientID: config.getOrThrow<string>('SLACK_CLIENT_ID'),
       clientSecret: config.getOrThrow<string>('SLACK_CLIENT_SECRET'),
-      // Must point to /auth/slack/callback (update SLACK_CALLBACK_URL in .env)
       callbackURL: config.getOrThrow<string>('SLACK_CALLBACK_URL'),
       scope: config.getOrThrow<string>('SLACK_SCOPES').split(','),
       passReqToCallback: false,
+      state: false, // stateless JWT app — no session middleware
     });
   }
 
+  // Return user directly — @nestjs/passport v11 handles done() automatically.
   async validate(
     accessToken: string,
     refreshToken: string | undefined,
@@ -48,7 +49,6 @@ export class SlackStrategy extends PassportStrategy(Strategy, 'slack', true) {
   ): Promise<SafeUser> {
     return this.authService.findOrCreateOAuthUser({
       provider: 'slack',
-      // profile.id is the Slack user ID (e.g. "U1234567890")
       providerAccountId: profile.id,
       email: profile.emails?.[0]?.value,
       name: profile.displayName,
