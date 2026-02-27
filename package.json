@@ -7,7 +7,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "turbo run dev --parallel",
+    "dev": "node -e \"const {execSync}=require('child_process');['3000','3001'].forEach(p=>{try{execSync('lsof -ti tcp:'+p+'|xargs kill -9',{stdio:'ignore'})}catch{}});\" && turbo run dev --parallel",
     "dev:web": "turbo run dev --filter=web",
     "dev:api": "turbo run dev --filter=api",
     "build": "turbo run build",
