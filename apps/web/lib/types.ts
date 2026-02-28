@@ -1,5 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-
 export interface ConversationViewModel {
   id: number;
   contact: string;
@@ -25,7 +23,5 @@ export interface Message {
 export interface Channel {
   id: string;
   name: string;
-  icon: LucideIcon;
   count: number;
-  color: string;
 }

@@ -4,7 +4,7 @@ import { AppModule } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { logger: ['log', 'debug', 'warn', 'error'] });
 
   app.useWebSocketAdapter(new IoAdapter(app));
 
@@ -18,8 +18,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      'http://localhost:3000', // dacă Next e pe 3000
-      'http://localhost:3001', // dacă Next e pe 3001
+      'http://localhost:3000',
     ],
     methods: 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Authorization',

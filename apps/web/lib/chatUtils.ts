@@ -1,4 +1,3 @@
-import { MessageSquare, Slack, Users, Phone, Mail } from "lucide-react";
 import type { Channel, ConversationViewModel } from "./types";
 
 export function mapConversationToViewModel(raw: any): ConversationViewModel {
@@ -54,25 +53,17 @@ export function getSentimentLabel(sentiment: string): string {
   return labels[sentiment] ?? "Neutral";
 }
 
-export function buildChannels(conversationCount: number): Channel[] {
+export function buildChannels(conversations: { platform: string }[]): Channel[] {
+  const countByPlatform = conversations.reduce<Record<string, number>>((acc, c) => {
+    acc[c.platform] = (acc[c.platform] ?? 0) + 1;
+    return acc;
+  }, {});
+
   return [
-    {
-      id: "all",
-      name: "Toate Mesajele",
-      icon: MessageSquare,
-      count: conversationCount,
-      color: "text-blue-500",
-    },
-    {
-      id: "telegram",
-      name: "Telegram",
-      icon: Phone,
-      count: conversationCount,
-      color: "text-green-500",
-    },
-    { id: "slack", name: "Slack", icon: Slack, count: 0, color: "text-purple-500" },
-    { id: "teams", name: "Teams", icon: Users, count: 0, color: "text-indigo-500" },
-    { id: "email", name: "Email", icon: Mail, count: 0, color: "text-red-500" },
+    { id: "all",      name: "Toate Mesajele", count: conversations.length },
+    { id: "telegram", name: "Telegram",        count: countByPlatform["telegram"] ?? 0 },
+    { id: "whatsapp", name: "WhatsApp",        count: countByPlatform["whatsapp"] ?? 0 },
+    { id: "teams",    name: "Teams",           count: countByPlatform["teams"]    ?? 0 },
   ];
 }
 

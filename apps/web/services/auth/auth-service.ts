@@ -76,10 +76,6 @@ export function startGoogleLogin(): void {
   window.location.href = `${API_URL}/auth/google`;
 }
 
-export function startSlackLogin(): void {
-  window.location.href = `${API_URL}/auth/slack`;
-}
-
 // ── Utility: attach auth header for protected API calls ──────────────────────
 
 export function authHeaders(): Record<string, string> {

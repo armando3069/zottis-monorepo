@@ -47,9 +47,14 @@ export function getMessages(conversationId: number): Promise<any[]> {
 
 // ── Mutations (REST) ──────────────────────────────────────────────────────────
 
-export async function sendReply(conversationId: number, text: string): Promise<void> {
+export async function sendReply(
+    conversationId: number,
+    text: string,
+    platform: string = "telegram",
+): Promise<void> {
     const token = getToken();
-    const res = await fetch(`${API_URL}/telegram/reply`, {
+    const endpoint = platform === "whatsapp" ? "whatsapp/reply" : "telegram/reply";
+    const res = await fetch(`${API_URL}/${endpoint}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

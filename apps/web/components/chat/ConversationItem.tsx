@@ -20,7 +20,7 @@ export function ConversationItem({ conversation: conv, isSelected, onSelect }: C
       <div className="flex gap-3">
         <div className="relative flex-shrink-0">
           <img src={conv.avatar} alt={conv.contact} className="w-12 h-12 rounded-full" />
-          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center">
+          <div className="absolute -bottom-1 -right-1 w-5 h-5  rounded-full flex items-center justify-center">
             <PlatformIcon platform={conv.platform} />
           </div>
         </div>

@@ -33,7 +33,7 @@ export function ChatLayout() {
     onPreviewUpdate: handlePreviewUpdate,
   });
 
-  const channels = buildChannels(conversations.length);
+  const channels = buildChannels(conversations);
 
   const filteredConversations = conversations.filter((conv) => {
     if (selectedChannel === "all") return true;
@@ -45,7 +45,7 @@ export function ChatLayout() {
     const text = messageInput.trim();
     setMessageInput("");
     try {
-      await sendReply(selectedConversation.id, text);
+      await sendReply(selectedConversation.id, text, selectedConversation.platform);
       // The sent message is received via the "newMessage" subscription in useMessages.
     } catch (e) {
       console.error("sendReply error", e);

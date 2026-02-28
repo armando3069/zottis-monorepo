@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { Search, TrendingUp, Tag, Clock, LogOut } from "lucide-react";
+import {TrendingUp, Tag, Clock, Settings,Cable, LogOut, ChevronUp, Bot } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useRef, useState, useEffect } from "react";
 import type { Channel } from "@/lib/types";
 import { ChannelItem } from "./ChannelItem";
 import { useAuth } from "@/context/AuthContext";
@@ -16,11 +17,36 @@ interface SidebarProps {
 export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
+    setMenuOpen(false);
     logout();
     router.replace("/auth/login");
   };
+
+  const handleSettings = () => {
+    setMenuOpen(false);
+    router.push("/connect-platforms?manage=1");
+  };
+
+  const handleAiAssistant = () => {
+    setMenuOpen(false);
+    router.push("/ai-assistant");
+  };
+
+  // Close menu when clicking outside the user section
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   const initials = user?.name
     ? user.name
@@ -46,15 +72,6 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
             <h1 className="text-xl font-bold text-slate-800">Dashboard</h1>
             <p className="text-xs text-slate-500">Agregator Inteligent</p>
           </div>
-        </div>
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Caută conversații..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
         </div>
       </div>
 
@@ -93,9 +110,43 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
         </div>
       </div>
 
-      {/* Current user + logout */}
-      <div className="p-4 border-t border-slate-200">
-        <div className="flex items-center gap-3">
+      {/* User section — click anywhere to open popup */}
+      <div className="p-4 border-t border-slate-200 relative" ref={menuRef}>
+        {/* Popup menu — appears above the user row */}
+        {menuOpen && (
+          <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden z-50">
+            <button
+              onClick={handleSettings}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <Cable className="w-4 h-4 text-green-600" />
+              Gestionează platformele
+            </button>
+            <div className="border-t border-slate-100" />
+            <button
+              onClick={handleAiAssistant}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <Bot className="w-4 h-4 text-blue-500" />
+              AI Assistant
+            </button>
+            <div className="border-t border-slate-100" />
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
+        )}
+
+        {/* Clickable user row */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          className="w-full flex items-center gap-3 rounded-lg p-2 hover:bg-slate-50 transition-all text-left"
+        >
           {user?.avatar ? (
             <Image
               src={user.avatar}
@@ -115,14 +166,12 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
             <p className="text-xs text-slate-500 truncate">{user?.email ?? ""}</p>
           </div>
 
-          <button
-            onClick={handleLogout}
-            title="Logout"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
+          <ChevronUp
+            className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-200 ${
+              menuOpen ? "" : "rotate-180"
+            }`}
+          />
+        </button>
       </div>
     </div>
   );

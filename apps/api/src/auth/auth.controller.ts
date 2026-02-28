@@ -25,10 +25,10 @@ const FRONTEND = process.env.FRONTEND_URL ?? 'http://localhost:3000';
 class GoogleGuard extends AuthGuard('google') {
   handleRequest(err: any, user: any, info: any, ctx: ExecutionContext) {
     if (err || !user) {
-      console.error('[GoogleGuard] OAuth error:', err?.message ?? err, '| info:', info);
+      const reason = err?.message ?? info?.message ?? err?.code ?? 'oauth_failed';
+      console.error('[GoogleGuard] auth failed — err:', err?.message ?? err, '| info:', info);
       const res = ctx.switchToHttp().getResponse<Response>();
-      const code: string = err?.code ?? err?.message ?? 'oauth_failed';
-      res.redirect(`${FRONTEND}/auth/login?error=${encodeURIComponent(code)}`);
+      res.redirect(`${FRONTEND}/auth/login?error=${encodeURIComponent(reason)}`);
       return null;
     }
     return user;
@@ -82,21 +82,6 @@ export class AuthController {
   @Get('microsoft/callback')
   @UseGuards(AuthGuard('microsoft'))
   microsoftCallback(@Req() req: Request, @Res() res: Response) {
-    const token = this.authService.loginOAuth(req.user as any);
-    res.redirect(`${FRONTEND}/auth/callback?token=${token}`);
-  }
-
-  // ─── Slack OAuth ───────────────────────────────────────────────────────────
-
-  /** Passport redirects the browser to Slack's OAuth consent screen. */
-  @Get('slack')
-  @UseGuards(AuthGuard('slack'))
-  slackLogin() {}
-
-  /** Slack redirects back here after the user authenticates. */
-  @Get('slack/callback')
-  @UseGuards(AuthGuard('slack'))
-  slackCallback(@Req() req: Request, @Res() res: Response) {
     const token = this.authService.loginOAuth(req.user as any);
     res.redirect(`${FRONTEND}/auth/callback?token=${token}`);
   }

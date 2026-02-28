@@ -7,7 +7,6 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
-import { SlackStrategy } from './strategies/slack.strategy';
 // import { MicrosoftOAuthStrategy } from './strategies/microsoft.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -34,7 +33,6 @@ import { PrismaModule } from '../prisma/prisma.module';
     JwtStrategy,
     LocalStrategy,
     GoogleStrategy,
-    SlackStrategy,
     //MicrosoftOAuthStrategy,
     JwtAuthGuard,
   ],

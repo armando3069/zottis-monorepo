@@ -2,13 +2,15 @@
 
 import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { saveToken } from "@/services/auth/auth-service";
+import { useAuth } from "@/context/AuthContext";
 import { getPlatformAccounts } from "@/services/platforms/platform-service";
+import { getToken } from "@/services/auth/auth-service";
 
 // Inner component that reads search params (must be inside Suspense).
 function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { loginWithToken } = useAuth();
   const processed = useRef(false);
 
   useEffect(() => {
@@ -22,21 +24,18 @@ function CallbackHandler() {
       return;
     }
 
-    // Persist the token synchronously so subsequent requests can use it.
-    saveToken(token);
-
-    // Check whether the user already has connected platforms.
-    // We pass the token directly — no need for an extra /auth/me round-trip.
-    getPlatformAccounts(token)
+    // Save token + update AuthContext state atomically so ProtectedRoute
+    // sees isAuthenticated=true before we navigate away.
+    loginWithToken(token)
+      .then(() => getPlatformAccounts(getToken()!))
       .then(({ total }) => {
         router.replace(total === 0 ? "/connect-platforms" : "/");
       })
       .catch((err) => {
-        // Platform check failed — log the error and fall back to dashboard.
-        console.error("[auth/callback] Failed to fetch platform accounts:", err);
+        console.error("[auth/callback] Failed:", err);
         router.replace("/");
       });
-  }, [router, searchParams]);
+  }, [router, searchParams, loginWithToken]);
 
   return null;
 }

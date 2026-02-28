@@ -1,4 +1,5 @@
 import type { Channel } from "@/lib/types";
+import { PlatformIcon } from "./PlatformIcon";
 
 interface ChannelItemProps {
   channel: Channel;
@@ -7,7 +8,6 @@ interface ChannelItemProps {
 }
 
 export function ChannelItem({ channel, isSelected, onSelect }: ChannelItemProps) {
-  const Icon = channel.icon;
   return (
     <button
       onClick={() => onSelect(channel.id)}
@@ -16,7 +16,10 @@ export function ChannelItem({ channel, isSelected, onSelect }: ChannelItemProps)
       }`}
     >
       <div className="flex items-center gap-3">
-        <Icon className={`w-5 h-5 ${isSelected ? "text-blue-600" : channel.color}`} />
+        <PlatformIcon
+          platform={channel.id}
+          className={`w-5 h-5 ${isSelected ? "opacity-100" : "opacity-70"}`}
+        />
         <span className="font-medium text-sm">{channel.name}</span>
       </div>
       <span
