@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { KnowledgeBaseService } from '../knowledge-base/knowledge-base.service';
 
 // ── Ollama shapes ─────────────────────────────────────────────────────────────
 
@@ -32,6 +33,7 @@ export class AiAssistantService {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly knowledgeBase: KnowledgeBaseService,
   ) {}
 
   // ── Auto-reply flag ───────────────────────────────────────────────────────
@@ -75,13 +77,33 @@ export class AiAssistantService {
     ]);
   }
 
-  // ── Public: reply with conversation history ───────────────────────────────
+  // ── Public: reply with conversation history (+ optional KB RAG) ──────────
 
   async generateReplyFromMessage(input: {
     conversationId: number;
     latestUserMessage: string;
+    userId?: number;
   }): Promise<string> {
-    // Load the last 10 messages to build context
+    // If the user has a knowledge base, use RAG for the answer
+    if (input.userId !== undefined) {
+      const files = this.knowledgeBase.getFilesForUser(input.userId);
+      if (files.length > 0) {
+        try {
+          const { answer } = await this.knowledgeBase.answerQuestionForUser(
+            input.userId,
+            input.latestUserMessage,
+          );
+          this.logger.log(
+            `[AI] RAG answer used for user ${input.userId} (KB files: ${files.length})`,
+          );
+          return answer;
+        } catch (e) {
+          this.logger.warn('[AI] KB RAG failed, falling back to plain chat', e);
+        }
+      }
+    }
+
+    // Fallback: plain chat with conversation history
     const history = await this.prisma.messages.findMany({
       where: { conversation_id: input.conversationId },
       orderBy: { timestamp: 'asc' },
