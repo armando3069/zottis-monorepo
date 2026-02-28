@@ -69,6 +69,46 @@ export async function sendReply(
     }
 }
 
+// ── AI Assistant (REST) ───────────────────────────────────────────────────────
+
+async function aiPost<T>(path: string, body?: object): Promise<T> {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/${path}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message ?? `${path} failed`);
+    }
+    return res.json() as Promise<T>;
+}
+
+async function aiGet<T>(path: string): Promise<T> {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/${path}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`GET ${path} failed`);
+    return res.json() as Promise<T>;
+}
+
+export function getAutoReplyStatus(): Promise<{ enabled: boolean }> {
+    return aiGet("ai-assistant/auto-reply/status");
+}
+
+export function setAutoReply(enabled: boolean): Promise<{ enabled: boolean }> {
+    return aiPost("ai-assistant/auto-reply/enable", { enabled });
+}
+
+export function testAiReply(text: string): Promise<{ reply: string }> {
+    return aiPost("ai-assistant/test-reply", { text });
+}
+
 // abonări la evenimente realtime
 export function subscribeToNewMessage(handler: (message: any) => void) {
     const socket = getSocket();
