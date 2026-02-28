@@ -132,7 +132,6 @@ export class ChatGateway
     try {
       const conversations = await this.prisma.conversations.findMany({
         where: {
-          platform: 'telegram',
           platform_account: { user_id: userId },
         },
         orderBy: { id: 'desc' },

@@ -24,6 +24,25 @@ export async function getPlatformAccounts(token: string): Promise<PlatformAccoun
   return res.json();
 }
 
+export async function connectWhatsapp(
+  token: string,
+  accessToken: string,
+  phoneNumberId: string,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/whatsapp/connect`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ accessToken, phoneNumberId }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { message?: string })?.message ?? "Failed to connect WhatsApp");
+  }
+}
+
 export async function connectTelegram(token: string, botToken: string): Promise<void> {
   const res = await fetch(`${API_URL}/telegram/connect`, {
     method: "POST",
@@ -38,3 +57,4 @@ export async function connectTelegram(token: string, botToken: string): Promise<
     throw new Error((body as { message?: string })?.message ?? "Failed to connect Telegram");
   }
 }
+
