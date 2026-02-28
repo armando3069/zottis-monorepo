@@ -9,9 +9,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatGateway } from '../chat/chat.gateway';
+import { AiAssistantService } from '../ai-assistant/ai-assistant.service';
 import { ConnectWhatsappDto } from './dto/connect-whatsapp.dto';
 import { WhatsappReplyDto } from './dto/whatsapp-reply.dto';
-import type { messages } from '@prisma/client';
+import type { conversations, messages, platform_accounts } from '@prisma/client';
 
 // ── WhatsApp Cloud API payload shapes ─────────────────────────────────────────
 
@@ -56,6 +57,8 @@ export class WhatsappService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway,
+    @Inject(forwardRef(() => AiAssistantService))
+    private readonly aiAssistantService: AiAssistantService,
   ) {
     this.apiBase =
       config.get<string>('WHATSAPP_API_BASE') ??
@@ -237,7 +240,7 @@ export class WhatsappService {
 
           const contact = (value.contacts ?? []).find((c) => c.wa_id === msg.from);
           await this.saveIncomingMessage(
-            platformAccount.id,
+            platformAccount,
             platformAccount.user_id,
             msg.from,
             contact?.profile?.name ?? null,
@@ -251,12 +254,13 @@ export class WhatsappService {
   // ── Private helpers ───────────────────────────────────────────────────────
 
   private async saveIncomingMessage(
-    platformAccountId: number,
+    platformAccount: platform_accounts,
     userId: number,
     waId: string,
     contactName: string | null,
     msg: WhatsAppMessage,
   ): Promise<void> {
+    const platformAccountId = platformAccount.id;
     let isNew = false;
     let conversation = await this.prisma.conversations.findFirst({
       where: { platform_account_id: platformAccountId, external_chat_id: waId },
@@ -288,5 +292,48 @@ export class WhatsappService {
 
     this.chatGateway.emitNewMessage(userId, message);
     if (isNew) this.chatGateway.emitNewConversation(userId, conversation);
+
+    // Auto-reply if enabled
+    if (this.aiAssistantService.autoReplyEnabled && msg.text?.body) {
+      this.triggerAutoReply(platformAccount, conversation!, userId, msg.text.body).catch((e) =>
+        this.logger.error(`[WA AUTO-REPLY] failed for conversation ${conversation!.id}`, e),
+      );
+    }
+  }
+
+  // ── Auto-reply helper ─────────────────────────────────────────────────────
+
+  private async triggerAutoReply(
+    platformAccount: platform_accounts,
+    conversation: conversations,
+    userId: number,
+    userText: string,
+  ): Promise<void> {
+    const reply = await this.aiAssistantService.generateReplyFromMessage({
+      conversationId: conversation.id,
+      latestUserMessage: userText,
+    });
+
+    await this.callGraphApi(
+      platformAccount.external_app_id!,
+      platformAccount.access_token,
+      conversation.external_chat_id,
+      reply,
+    );
+
+    const message = await this.prisma.messages.create({
+      data: {
+        conversation_id: conversation.id,
+        sender_type: 'bot',
+        text: reply,
+        platform: 'whatsapp',
+        timestamp: new Date(),
+      },
+    });
+
+    this.chatGateway.emitNewMessage(userId, message);
+    this.logger.log(
+      `[WA AUTO-REPLY] sent reply to conversation ${conversation.id}`,
+    );
   }
 }

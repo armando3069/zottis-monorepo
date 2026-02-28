@@ -12,6 +12,7 @@ import { randomBytes } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatGateway } from '../chat/chat.gateway';
+import { AiAssistantService } from '../ai-assistant/ai-assistant.service';
 import { ConnectBotDto } from './dto/connect-bot.dto';
 import { ReplyDto } from './dto/reply.dto';
 import type { Prisma, conversations, messages, platform_accounts } from '@prisma/client';
@@ -59,6 +60,8 @@ export class TelegramService {
     private readonly config: ConfigService,
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway,
+    @Inject(forwardRef(() => AiAssistantService))
+    private readonly aiAssistantService: AiAssistantService,
   ) {}
 
   // ── Low-level Telegram HTTP helper ────────────────────────────────────────
@@ -359,8 +362,47 @@ export class TelegramService {
     if (isNew) {
       this.chatGateway.emitNewConversation(userId, conversation);
     }
+
+    // 6. Auto-reply if enabled
+    if (this.aiAssistantService.autoReplyEnabled && msg.text) {
+      this.triggerAutoReply(platformAccount, conversation, userId, msg.text).catch((e) =>
+        this.logger.error(`[TG AUTO-REPLY] failed for conversation ${conversation.id}`, e),
+      );
+    }
   }
 
-  // ── Slack (placeholder — implement analogously) ───────────────────────────
-  // TODO: async connectSlack(userId: number, dto: ConnectSlackDto) { ... }
+  // ── Auto-reply helper ─────────────────────────────────────────────────────
+
+  private async triggerAutoReply(
+    platformAccount: platform_accounts,
+    conversation: conversations,
+    userId: number,
+    userText: string,
+  ): Promise<void> {
+    const reply = await this.aiAssistantService.generateReplyFromMessage({
+      conversationId: conversation.id,
+      latestUserMessage: userText,
+    });
+
+    await this.sendMessage(
+      platformAccount.access_token,
+      conversation.external_chat_id,
+      reply,
+    );
+
+    const message = await this.prisma.messages.create({
+      data: {
+        conversation_id: conversation.id,
+        sender_type: 'bot',
+        text: reply,
+        platform: 'telegram',
+        timestamp: new Date(),
+      },
+    });
+
+    this.chatGateway.emitNewMessage(userId, message);
+    this.logger.log(
+      `[TG AUTO-REPLY] sent reply to conversation ${conversation.id}`,
+    );
+  }
 }

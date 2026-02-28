@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -9,7 +9,10 @@ import {
   Trash2,
   FileText,
   BookOpen,
+  Send,
+  Loader2,
 } from "lucide-react";
+import { getAutoReplyStatus, setAutoReply, testAiReply } from "@/services/api/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,17 +51,20 @@ const MOCK_FILES: KnowledgeFile[] = [
 function Toggle({
   checked,
   onChange,
+  disabled,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 ${
         checked ? "bg-blue-600" : "bg-slate-200"
       }`}
     >
@@ -78,12 +84,59 @@ export default function AiAssistantPage() {
   const [activeTab, setActiveTab] = useState<"configuration" | "knowledge">(
     "configuration"
   );
-  const [autoReply, setAutoReply] = useState(false);
+
+  // ── Auto-reply state ────────────────────────────────────────────────────────
+  const [autoReply, setAutoReplyState] = useState(false);
+  const [togglingAutoReply, setTogglingAutoReply] = useState(false);
+  const [autoReplyError, setAutoReplyError] = useState<string | null>(null);
+
+  // ── Test AI reply state ─────────────────────────────────────────────────────
+  const [testInput, setTestInput] = useState("");
+  const [testReply, setTestReply] = useState<string | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
+
+  // ── Knowledge state ─────────────────────────────────────────────────────────
   const [files, setFiles] = useState<KnowledgeFile[]>(MOCK_FILES);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ── Load auto-reply status on mount ────────────────────────────────────────
+  useEffect(() => {
+    getAutoReplyStatus()
+      .then(({ enabled }) => setAutoReplyState(enabled))
+      .catch(() => {/* silently ignore — API may not be ready */});
+  }, []);
+
   // ── Handlers ────────────────────────────────────────────────────────────────
+
+  const handleAutoReplyToggle = async (next: boolean) => {
+    setTogglingAutoReply(true);
+    setAutoReplyError(null);
+    try {
+      const { enabled } = await setAutoReply(next);
+      setAutoReplyState(enabled);
+    } catch {
+      setAutoReplyError("Nu s-a putut schimba starea. Încearcă din nou.");
+    } finally {
+      setTogglingAutoReply(false);
+    }
+  };
+
+  const handleTestSubmit = async () => {
+    if (!testInput.trim()) return;
+    setTestLoading(true);
+    setTestReply(null);
+    setTestError(null);
+    try {
+      const { reply } = await testAiReply(testInput.trim());
+      setTestReply(reply);
+    } catch {
+      setTestError("AI-ul nu este disponibil momentan. Verifică că Ollama rulează.");
+    } finally {
+      setTestLoading(false);
+    }
+  };
 
   const handleDelete = (id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
@@ -176,6 +229,8 @@ export default function AiAssistantPage() {
         {/* ── Tab: Configuration ── */}
         {activeTab === "configuration" && (
           <div className="space-y-4">
+
+            {/* Auto-reply toggle */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4">
@@ -204,10 +259,79 @@ export default function AiAssistantPage() {
                       />
                       {autoReply ? "Activ" : "Inactiv"}
                     </span>
+                    {autoReplyError && (
+                      <p className="mt-2 text-xs text-red-500">{autoReplyError}</p>
+                    )}
                   </div>
                 </div>
-                <Toggle checked={autoReply} onChange={setAutoReply} />
+                <Toggle
+                  checked={autoReply}
+                  onChange={handleAutoReplyToggle}
+                  disabled={togglingAutoReply}
+                />
               </div>
+            </div>
+
+            {/* Test AI reply */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50">
+                  <Send className="h-5 w-5 text-violet-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800">Test AI Reply</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Trimite un mesaj de test și vezi răspunsul generat de AI.
+                  </p>
+                </div>
+              </div>
+
+              <textarea
+                value={testInput}
+                onChange={(e) => setTestInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleTestSubmit();
+                  }
+                }}
+                rows={3}
+                placeholder="Scrie un mesaj de test..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 placeholder-slate-400 focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 resize-none"
+              />
+
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-400">
+                  Enter pentru a trimite · Shift+Enter pentru linie nouă
+                </p>
+                <button
+                  onClick={handleTestSubmit}
+                  disabled={testLoading || !testInput.trim()}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                >
+                  {testLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  {testLoading ? "Se generează..." : "Test"}
+                </button>
+              </div>
+
+              {testError && (
+                <div className="mt-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                  <p className="text-sm text-red-600">{testError}</p>
+                </div>
+              )}
+
+              {testReply && (
+                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-blue-400">
+                    Răspuns AI
+                  </p>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{testReply}</p>
+                </div>
+              )}
             </div>
 
             {/* Coming soon cards */}

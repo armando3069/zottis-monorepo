@@ -5,6 +5,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ChatModule } from './chat/chat.module';
 import { AuthModule } from './auth/auth.module';
+import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AuthModule } from './auth/auth.module';
     TelegramModule,
     WhatsappModule,
     ChatModule,
+    AiAssistantModule,
   ],
 })
 export class AppModule {}
