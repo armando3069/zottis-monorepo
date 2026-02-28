@@ -382,6 +382,7 @@ export class TelegramService {
     const reply = await this.aiAssistantService.generateReplyFromMessage({
       conversationId: conversation.id,
       latestUserMessage: userText,
+      userId,
     });
 
     await this.sendMessage(

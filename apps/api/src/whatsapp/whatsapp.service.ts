@@ -312,6 +312,7 @@ export class WhatsappService {
     const reply = await this.aiAssistantService.generateReplyFromMessage({
       conversationId: conversation.id,
       latestUserMessage: userText,
+      userId,
     });
 
     await this.callGraphApi(
