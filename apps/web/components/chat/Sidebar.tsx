@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import {TrendingUp, Tag, Clock, Settings,Cable, LogOut, ChevronUp, Bot } from "lucide-react";
+import { TrendingUp, Tag, Clock, Cable, LogOut, ChevronUp, Bot, Bell, BellOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import type { Channel } from "@/lib/types";
 import { ChannelItem } from "./ChannelItem";
 import { useAuth } from "@/context/AuthContext";
+import { requestNotificationPermission, getNotificationPermission } from "@/lib/notify";
 
 interface SidebarProps {
   channels: Channel[];
@@ -47,6 +48,17 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
+
+  const [notifPermission, setNotifPermission] = useState<string>("default");
+
+  useEffect(() => {
+    setNotifPermission(getNotificationPermission());
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    const result = await requestNotificationPermission();
+    setNotifPermission(result);
+  };
 
   const initials = user?.name
     ? user.name
@@ -106,6 +118,28 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
               <Clock className="w-4 h-4" />
               <span className="text-sm">Deadline-uri</span>
             </button>
+
+            {/* Notification permission */}
+            {notifPermission === "unavailable" ? null : notifPermission === "granted" ? (
+              <div className="w-full flex items-center gap-3 p-3 rounded-lg text-green-600">
+                <Bell className="w-4 h-4" />
+                <span className="text-sm">Notificări active</span>
+                <span className="ml-auto h-2 w-2 rounded-full bg-green-500" />
+              </div>
+            ) : notifPermission === "denied" ? (
+              <div className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-400">
+                <BellOff className="w-4 h-4" />
+                <span className="text-sm">Notificări blocate</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleEnableNotifications}
+                className="w-full flex items-center gap-3 p-3 rounded-lg text-blue-600 hover:bg-blue-50 transition-all"
+              >
+                <Bell className="w-4 h-4" />
+                <span className="text-sm font-medium">Activează notificările</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useConversations } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
 import { buildChannels } from "@/lib/chatUtils";
-import { sendReply } from "@/services/api/api";
-import type { ConversationViewModel } from "@/lib/types";
+import { sendReply, subscribeToNewMessage } from "@/services/api/api";
+import { notifyNewMessage } from "@/lib/notify";
+import type { ConversationViewModel, Message } from "@/lib/types";
 import { Sidebar } from "./Sidebar";
 import { ConversationList } from "./ConversationList";
 import { ChatArea } from "./ChatArea";
@@ -32,6 +33,31 @@ export function ChatLayout() {
     selectedConversation,
     onPreviewUpdate: handlePreviewUpdate,
   });
+
+  // Stable refs so the subscription effect doesn't re-run on every render
+  const conversationsRef = useRef(conversations);
+  useEffect(() => { conversationsRef.current = conversations; });
+  const selectedConvRef = useRef(selectedConversation);
+  useEffect(() => { selectedConvRef.current = selectedConversation; });
+
+  // Global subscription: notify for client messages in conversations OTHER than
+  // the currently selected one (selected conversation is handled by useMessages).
+  useEffect(() => {
+    const unsub = subscribeToNewMessage((msg: Message) => {
+      if (msg.sender_type !== "client" || !msg.text) return;
+      if (selectedConvRef.current?.id === msg.conversation_id) return;
+
+      const conv = conversationsRef.current.find((c) => c.id === msg.conversation_id);
+      if (conv) {
+        notifyNewMessage({
+          platform: conv.platform,
+          contactName: conv.contact,
+          textPreview: msg.text,
+        });
+      }
+    });
+    return () => { unsub(); };
+  }, []);
 
   const channels = buildChannels(conversations);
 
