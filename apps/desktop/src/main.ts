@@ -1,8 +1,8 @@
-import { app, BrowserWindow, nativeImage } from 'electron';
+import { app, BrowserWindow, nativeImage, ipcMain, Notification } from 'electron';
 import path from 'path';
 
 const isDev = process.env.NODE_ENV !== 'production';
-app.setName("Zottis");
+app.setName('Zottis');
 
 const WEB_URL = isDev
   ? 'http://localhost:3000'
@@ -14,7 +14,26 @@ const ICON_FILE =
   process.platform === 'win32'  ? 'icon.ico'  :
                                   'icon.png';
 const ICON_PATH = path.join(__dirname, '../assets', ICON_FILE);
-const appIcon = nativeImage.createFromPath(ICON_PATH);
+const appIcon   = nativeImage.createFromPath(ICON_PATH);
+
+// In dev, __dirname = src/ (ts-node), so we use a plain-JS preload mirror.
+// In prod, __dirname = dist/ where tsc outputs preload.js.
+const PRELOAD_PATH = isDev
+  ? path.join(__dirname, 'preload-dev.js')
+  : path.join(__dirname, 'preload.js');
+
+// ── IPC: OS-level notifications ───────────────────────────────────────────────
+
+ipcMain.on('notify', (_event, { title, body }: { title: string; body: string }) => {
+  if (!Notification.isSupported()) return;
+  new Notification({
+    title,
+    body,
+    icon: appIcon,
+  }).show();
+});
+
+// ── Window factory ────────────────────────────────────────────────────────────
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -25,12 +44,11 @@ function createWindow(): void {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      // Preload is only used in production (built artifact)
-      ...(!isDev && { preload: path.join(__dirname, 'preload.js') }),
+      preload: PRELOAD_PATH,
     },
   });
 
-  win.webContents.on("did-finish-load", () => {
+  win.webContents.on('did-finish-load', () => {
     win.webContents.setZoomFactor(0.9);
   });
 
@@ -44,6 +62,8 @@ function createWindow(): void {
     });
   }
 }
+
+// ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
   // macOS dock icon
