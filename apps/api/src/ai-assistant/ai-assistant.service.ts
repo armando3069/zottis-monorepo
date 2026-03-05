@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { KnowledgeBaseService } from '../knowledge-base/knowledge-base.service';
 import { ResponseTone, UpdateConfigDto } from './dto/update-config.dto';
+import { TranslateDto } from './dto/translate.dto';
 
 // ── Tone-specific system prompts ──────────────────────────────────────────────
 
@@ -211,6 +212,58 @@ export class AiAssistantService {
     }
 
     return this.defaultSuggestions();
+  }
+
+  // ── Public: text translation ──────────────────────────────────────────────
+
+  async translateText(dto: TranslateDto): Promise<{
+    translatedText: string;
+    detectedSourceLanguage: string;
+    confidence: number;
+  }> {
+    const text = dto.text?.trim();
+    if (!text || text.length < 2) {
+      return { translatedText: dto.text, detectedSourceLanguage: 'unknown', confidence: 100 };
+    }
+
+    const system =
+      'You are a professional translator. Rules: ' +
+      '1) Translate to the requested target language. ' +
+      '2) Preserve meaning, tone, and style exactly. ' +
+      '3) Keep emojis unchanged. ' +
+      '4) Keep proper names and brand names unchanged. ' +
+      '5) If the text is already in the target language, return it unchanged. ' +
+      '6) Return ONLY valid JSON — no markdown, no explanation: ' +
+      '{"translatedText":"...","detectedSourceLanguage":"...","confidence":0}';
+
+    const user = `Translate to ${dto.targetLanguage}:\n${JSON.stringify(text)}`;
+
+    try {
+      const raw = await this.callOllama([
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ]);
+
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]) as {
+          translatedText?: string;
+          detectedSourceLanguage?: string;
+          confidence?: number;
+        };
+        if (parsed.translatedText) {
+          return {
+            translatedText: parsed.translatedText,
+            detectedSourceLanguage: parsed.detectedSourceLanguage ?? 'unknown',
+            confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 80,
+          };
+        }
+      }
+    } catch (e) {
+      this.logger.warn('[AI] translateText failed', e);
+    }
+
+    return { translatedText: text, detectedSourceLanguage: 'unknown', confidence: 0 };
   }
 
   private defaultSuggestions(): string[] {

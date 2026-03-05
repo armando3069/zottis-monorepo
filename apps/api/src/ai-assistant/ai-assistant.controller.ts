@@ -23,6 +23,7 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { TestReplyDto } from './dto/test-reply.dto';
 import { AutoReplyToggleDto } from './dto/auto-reply-toggle.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
+import { TranslateDto } from './dto/translate.dto';
 
 interface AuthenticatedRequest extends Request {
   user: { id: number; email: string };
@@ -93,6 +94,21 @@ export class AiAssistantController {
   @Get('auto-reply/status')
   autoReplyStatus(@Request() req: AuthenticatedRequest): { enabled: boolean } {
     return { enabled: this.aiAssistantService.getConfig(req.user.id).autoReplyEnabled };
+  }
+
+  // ── POST /ai-assistant/translate ──────────────────────────────────────────
+
+  @Post('translate')
+  @HttpCode(HttpStatus.OK)
+  async translate(
+    @Body() dto: TranslateDto,
+  ): Promise<{ translatedText: string; detectedSourceLanguage: string; confidence: number }> {
+    try {
+      return await this.aiAssistantService.translateText(dto);
+    } catch (e) {
+      this.logger.error('[AI] translate failed', e);
+      throw new InternalServerErrorException('AI service unavailable');
+    }
   }
 
   // ── GET /ai-assistant/conversations/:id/suggested-replies ─────────────────

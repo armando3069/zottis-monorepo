@@ -39,30 +39,6 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
           </button>
         </div>
       </div>
-
-      {/* Smart Insights */}
-      <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Zap className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-semibold text-slate-800 mb-1">Insights Inteligente</h4>
-            <div className="space-y-1">
-              {conversation.entities.map((entity, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-xs text-slate-600">
-                  <div className="w-1 h-1 bg-blue-400 rounded-full" />
-                  <span>{entity}</span>
-                </div>
-              ))}
-              <div className="flex items-center gap-2 text-xs text-slate-600">
-                <div className="w-1 h-1 bg-blue-400 rounded-full" />
-                <span>Sentiment: {conversation.sentiment}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

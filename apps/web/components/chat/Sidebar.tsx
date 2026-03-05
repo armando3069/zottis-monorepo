@@ -81,8 +81,8 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
             className="w-10 h-10 text-white rounded-md"
           />
           <div>
-            <h1 className="text-xl font-bold text-slate-800">Dashboard</h1>
-            <p className="text-xs text-slate-500">Agregator Inteligent</p>
+            <h1 className="text-xl font-bold text-slate-800">Inbox</h1>
+            <p className="text-xs text-slate-500">AI Agregator</p>
           </div>
         </div>
       </div>
