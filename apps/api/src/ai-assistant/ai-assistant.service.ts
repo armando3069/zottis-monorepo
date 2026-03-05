@@ -49,6 +49,12 @@ export class AiAssistantService {
   /** Per-user configuration. Resets on restart (in-memory only). */
   private readonly configs = new Map<number, AiAssistantConfig>();
 
+  /** Suggested-replies cache: invalidated when the latest message changes or after 30 s. */
+  private readonly suggestionsCache = new Map<
+    number,
+    { suggestions: string[]; expiresAt: number; lastMessageId: number }
+  >();
+
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
@@ -135,6 +141,85 @@ export class AiAssistantService {
       this.logger.warn('[AI] Confidence estimation failed', e);
     }
     return 50; // neutral fallback
+  }
+
+  // ── Public: suggested replies ─────────────────────────────────────────────
+
+  /**
+   * Returns 4 short suggested replies for the given conversation.
+   * Results are cached for 30 s per conversation, and invalidated automatically
+   * when the latest message changes.
+   */
+  async getSuggestedReplies(conversationId: number): Promise<string[]> {
+    const now = Date.now();
+
+    // Fetch last 6 messages (desc = newest first)
+    const rows = await this.prisma.messages.findMany({
+      where: { conversation_id: conversationId },
+      orderBy: { timestamp: 'desc' },
+      take: 6,
+    });
+
+    if (rows.length === 0) return this.defaultSuggestions();
+
+    const latestId = rows[0].id;
+
+    // Return cached result if still fresh AND last message hasn't changed
+    const hit = this.suggestionsCache.get(conversationId);
+    if (hit && hit.expiresAt > now && hit.lastMessageId === latestId) {
+      return hit.suggestions;
+    }
+
+    // Build transcript (chronological order)
+    const lines = [...rows]
+      .reverse()
+      .filter((m) => m.text)
+      .map((m) => `${m.sender_type === 'client' ? 'Customer' : 'Agent'}: ${m.text}`);
+
+    const transcript = lines.join('\n');
+
+    const systemPrompt =
+      'You are a customer support assistant. Based on the conversation context, generate 4 short professional reply suggestions the agent could send next. Replies must be concise, natural, and in Romanian.';
+
+    const userPrompt =
+      `Transcript:\n${transcript}\n\n` +
+      'Return ONLY valid JSON with no extra text:\n' +
+      '{"suggestions": ["text", "text", "text", "text"]}';
+
+    try {
+      const raw = await this.callOllama([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ]);
+
+      const jsonMatch = raw.match(/\{[\s\S]*"suggestions"[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as { suggestions?: unknown };
+        if (Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0) {
+          const suggestions = (parsed.suggestions as string[]).slice(0, 4);
+          this.suggestionsCache.set(conversationId, {
+            suggestions,
+            expiresAt: now + 30_000,
+            lastMessageId: latestId,
+          });
+          this.logger.log(`[AI] suggested-replies generated for conversation=${conversationId}`);
+          return suggestions;
+        }
+      }
+    } catch (e) {
+      this.logger.warn('[AI] getSuggestedReplies Ollama call failed', e);
+    }
+
+    return this.defaultSuggestions();
+  }
+
+  private defaultSuggestions(): string[] {
+    return [
+      'Mulțumesc pentru mesaj. Verific imediat.',
+      'Am primit solicitarea și revin în câteva minute.',
+      'Înțeleg situația și mă ocup de rezolvare.',
+      'Mulțumesc pentru informații. Revin cu un update.',
+    ];
   }
 
   // ── Public: simple one-shot reply (test endpoint) ─────────────────────────

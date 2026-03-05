@@ -95,6 +95,29 @@ export class AiAssistantController {
     return { enabled: this.aiAssistantService.getConfig(req.user.id).autoReplyEnabled };
   }
 
+  // ── GET /ai-assistant/conversations/:id/suggested-replies ─────────────────
+
+  @Get('conversations/:id/suggested-replies')
+  async getSuggestedReplies(
+    @Request() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) conversationId: number,
+  ): Promise<{ suggestions: string[] }> {
+    const userId = req.user.id;
+
+    const conv = await this.prisma.conversations.findFirst({
+      where: { id: conversationId, platform_account: { user_id: userId } },
+    });
+    if (!conv) throw new NotFoundException('Conversation not found');
+
+    try {
+      const suggestions = await this.aiAssistantService.getSuggestedReplies(conversationId);
+      return { suggestions };
+    } catch (e) {
+      this.logger.error(`[AI] suggested-replies failed for conversation ${conversationId}`, e);
+      throw new InternalServerErrorException('AI service unavailable');
+    }
+  }
+
   // ── POST /ai-assistant/conversations/:id/auto-reply ───────────────────────
 
   @Post('conversations/:id/auto-reply')
