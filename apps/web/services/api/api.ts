@@ -128,6 +128,21 @@ export function testAiReply(text: string): Promise<{ reply: string }> {
     return aiPost("ai-assistant/test-reply", { text });
 }
 
+export interface TranslateResult {
+    translatedText: string;
+    detectedSourceLanguage: string;
+    confidence: number;
+}
+
+export function translateMessage(payload: {
+    text: string;
+    targetLanguage: string;
+    sourceLanguage?: string;
+    messageId?: string;
+}): Promise<TranslateResult> {
+    return aiPost("ai-assistant/translate", payload);
+}
+
 export function getSuggestedReplies(
     conversationId: number,
 ): Promise<{ suggestions: string[] }> {
