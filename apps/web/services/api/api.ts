@@ -88,6 +88,23 @@ async function aiPost<T>(path: string, body?: object): Promise<T> {
     return res.json() as Promise<T>;
 }
 
+async function apiPatch<T>(path: string, body?: object): Promise<T> {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/${path}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message ?? `PATCH ${path} failed`);
+    }
+    return res.json() as Promise<T>;
+}
+
 async function aiGet<T>(path: string): Promise<T> {
     const token = getToken();
     const res = await fetch(`${API_URL}/${path}`, {
@@ -126,6 +143,48 @@ export function setAutoReply(enabled: boolean): Promise<{ enabled: boolean }> {
 
 export function testAiReply(text: string): Promise<{ reply: string }> {
     return aiPost("ai-assistant/test-reply", { text });
+}
+
+export interface ContactRow {
+    id: number;
+    contact_name: string | null;
+    contact_username: string | null;
+    contact_avatar: string | null;
+    platform: string;
+    lifecycle_status: string;
+    contact_email: string | null;
+    contact_phone: string | null;
+    contact_country: string | null;
+    contact_language: string | null;
+    created_at: string;
+}
+
+export function getContacts(filters?: {
+    platform?: string;
+    lifecycle?: string;
+    search?: string;
+}): Promise<ContactRow[]> {
+    const params = new URLSearchParams();
+    if (filters?.platform)  params.set('platform', filters.platform);
+    if (filters?.lifecycle) params.set('lifecycle', filters.lifecycle);
+    if (filters?.search)    params.set('search', filters.search);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return aiGet(`conversations/contacts${qs}`);
+}
+
+export interface ContactInfoPatch {
+    lifecycleStatus?: string;
+    contactEmail?: string | null;
+    contactPhone?: string | null;
+    contactCountry?: string | null;
+    contactLanguage?: string | null;
+}
+
+export function updateContactInfo(
+    conversationId: number,
+    patch: ContactInfoPatch,
+): Promise<Record<string, unknown>> {
+    return apiPatch(`conversations/${conversationId}/contact-info`, patch);
 }
 
 export interface TranslateResult {

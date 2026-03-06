@@ -23,6 +23,11 @@ export function mapConversationToViewModel(raw: any): ConversationViewModel {
     avatar:
       raw.contact_avatar ||
       `https://api.dicebear.com/7.x/initials/svg?seed=${seed}`,
+    lifecycleStatus: raw.lifecycle_status ?? "NEW_LEAD",
+    contactEmail:    raw.contact_email    ?? null,
+    contactPhone:    raw.contact_phone    ?? null,
+    contactCountry:  raw.contact_country  ?? null,
+    contactLanguage: raw.contact_language ?? null,
   };
 }
 

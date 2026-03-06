@@ -7,6 +7,7 @@ import { ChatModule } from './chat/chat.module';
 import { AuthModule } from './auth/auth.module';
 import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
+import { ConversationsModule } from './conversations/conversations.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { KnowledgeBaseModule } from './knowledge-base/knowledge-base.module';
     ChatModule,
     AiAssistantModule,
     KnowledgeBaseModule,
+    ConversationsModule,
   ],
 })
 export class AppModule {}
