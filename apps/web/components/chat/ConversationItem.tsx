@@ -1,7 +1,8 @@
 import { Tag } from "lucide-react";
 import type { ConversationViewModel } from "@/lib/types";
 import { getSentimentColor, getSentimentLabel } from "@/lib/chatUtils";
-import { PlatformIcon } from "./PlatformIcon";
+import { getLifecycleStage } from "@/lib/lifecycle";
+import { AvatarWithPlatformBadge } from "./AvatarWithPlatformBadge";
 
 interface ConversationItemProps {
   conversation: ConversationViewModel;
@@ -18,12 +19,12 @@ export function ConversationItem({ conversation: conv, isSelected, onSelect }: C
       }`}
     >
       <div className="flex gap-3">
-        <div className="relative flex-shrink-0">
-          <img src={conv.avatar} alt={conv.contact} className="w-12 h-12 rounded-full" />
-          <div className="absolute -bottom-1 -right-1 w-5 h-5  rounded-full flex items-center justify-center">
-            <PlatformIcon platform={conv.platform} />
-          </div>
-        </div>
+        <AvatarWithPlatformBadge
+          name={conv.contact}
+          avatar={conv.avatar}
+          platform={conv.platform}
+          size="lg"
+        />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-1">
@@ -39,9 +40,14 @@ export function ConversationItem({ conversation: conv, isSelected, onSelect }: C
             >
               {getSentimentLabel(conv.sentiment)}
             </span>
-            <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">
-              {conv.category}
-            </span>
+            {(() => {
+              const stage = getLifecycleStage(conv.lifecycleStatus);
+              return (
+                <span className={`text-xs px-2 py-0.5 rounded-full border ${stage.badgeClass}`}>
+                  {stage.emoji} {stage.label}
+                </span>
+              );
+            })()}
             {conv.unread > 0 && (
               <span className="ml-auto text-xs px-2 py-0.5 bg-blue-600 text-white rounded-full font-medium">
                 {conv.unread}

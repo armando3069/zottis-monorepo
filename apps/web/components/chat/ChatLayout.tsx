@@ -4,7 +4,8 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useConversations } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
 import { buildChannels } from "@/lib/chatUtils";
-import { sendReply, subscribeToNewMessage, getSuggestedReplies } from "@/services/api/api";
+import { sendReply, subscribeToNewMessage, getSuggestedReplies, updateContactInfo } from "@/services/api/api";
+import type { ContactInfoPatch } from "@/services/api/api";
 import { notifyNewMessage } from "@/lib/notify";
 import type { ConversationViewModel, Message } from "@/lib/types";
 import { Sidebar } from "./Sidebar";
@@ -19,6 +20,16 @@ export function ChatLayout() {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const { conversations, setConversations, isLoading: isLoadingConversations } = useConversations();
+
+  // Auto-select a conversation passed via sessionStorage (e.g. from /contacts page)
+  useEffect(() => {
+    if (!conversations.length) return;
+    const pending = sessionStorage.getItem("pendingConvId");
+    if (!pending) return;
+    sessionStorage.removeItem("pendingConvId");
+    const conv = conversations.find((c) => c.id === Number(pending));
+    if (conv) setSelectedConversation(conv);
+  }, [conversations]);
 
   // ── Suggested replies ────────────────────────────────────────────────────
 
@@ -104,6 +115,29 @@ export function ChatLayout() {
     return conv.platform === selectedChannel;
   });
 
+  // ── Contact info / lifecycle update ──────────────────────────────────────
+
+  const handleUpdateConversation = useCallback(
+    async (id: number, patch: ContactInfoPatch) => {
+      const updated = await updateContactInfo(id, patch);
+      // Merge returned fields into local state
+      const merge = (conv: typeof selectedConversation) => {
+        if (!conv || conv.id !== id) return conv;
+        return {
+          ...conv,
+          lifecycleStatus: (updated as Record<string, unknown>).lifecycle_status as string ?? conv.lifecycleStatus,
+          contactEmail:    (updated as Record<string, unknown>).contact_email    as string | null ?? conv.contactEmail,
+          contactPhone:    (updated as Record<string, unknown>).contact_phone    as string | null ?? conv.contactPhone,
+          contactCountry:  (updated as Record<string, unknown>).contact_country  as string | null ?? conv.contactCountry,
+          contactLanguage: (updated as Record<string, unknown>).contact_language as string | null ?? conv.contactLanguage,
+        };
+      };
+      setSelectedConversation((prev) => merge(prev));
+      setConversations((prev) => prev.map((c) => (c.id === id ? (merge(c) ?? c) : c)));
+    },
+    [setConversations],
+  );
+
   // ── Send ─────────────────────────────────────────────────────────────────
 
   const handleSend = async () => {
@@ -142,6 +176,7 @@ export function ChatLayout() {
         onRefreshSuggestions={() => {
           if (selectedConversation) refreshSuggestions(selectedConversation.id);
         }}
+        onUpdateConversation={handleUpdateConversation}
         onSend={handleSend}
       />
     </div>
