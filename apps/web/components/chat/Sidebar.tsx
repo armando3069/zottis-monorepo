@@ -1,14 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { TrendingUp, Tag, Clock, Cable, LogOut, ChevronUp, Bot, Bell, BellOff } from "lucide-react";
+import { TrendingUp, Cable, LogOut, ChevronUp, Bot, Bell, BellOff, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
 import type { Channel } from "@/lib/types";
 import { ChannelItem } from "./ChannelItem";
 import { useAuth } from "@/context/AuthContext";
 import { requestNotificationPermission, getNotificationPermission } from "@/lib/notify";
-
 interface SidebarProps {
   channels: Channel[];
   selectedChannel: string;
@@ -35,6 +34,10 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
   const handleAiAssistant = () => {
     setMenuOpen(false);
     router.push("/ai-assistant");
+  };
+
+  const handleContacts = () => {
+    router.push("/contacts");
   };
 
   // Close menu when clicking outside the user section
@@ -99,25 +102,41 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
           ))}
         </div>
 
+
         <div className="mt-6 pt-6 border-t border-slate-200">
           <div className="flex items-center justify-between mb-3 px-2">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Funcții Smart
+              Tools
             </h3>
           </div>
           <div className="space-y-1">
+            <button
+              onClick={handleContacts}
+              className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-slate-50 transition-all"
+            >
+              <Users className="w-4 h-4" />
+              <span className="text-sm">Contacts</span>
+            </button>
             <button className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-slate-50 transition-all">
               <TrendingUp className="w-4 h-4" />
               <span className="text-sm">Analiza Sentimente</span>
             </button>
-            <button className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-slate-50 transition-all">
-              <Tag className="w-4 h-4" />
-              <span className="text-sm">Clasificare Automată</span>
+            <button
+                onClick={handleSettings}
+                className="w-full flex items-center gap-3 p-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              <Cable className="w-4 h-4 " />
+              Gestionează platformele
             </button>
-            <button className="w-full flex items-center gap-3 p-3 rounded-lg text-slate-600 hover:bg-slate-50 transition-all">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm">Deadline-uri</span>
+            <button
+                onClick={handleAiAssistant}
+                className="w-full flex items-center gap-3 p-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              <Bot className="w-4 h-4 " />
+              AI Assistant
             </button>
+
+            <div className='border-t border-slate-200'></div>
 
             {/* Notification permission */}
             {notifPermission === "unavailable" ? null : notifPermission === "granted" ? (
@@ -144,43 +163,9 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
         </div>
       </div>
 
-      {/* User section — click anywhere to open popup */}
       <div className="p-4 border-t border-slate-200 relative" ref={menuRef}>
-        {/* Popup menu — appears above the user row */}
-        {menuOpen && (
-          <div className="absolute bottom-full left-4 right-4 mb-2 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden z-50">
-            <button
-              onClick={handleSettings}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              <Cable className="w-4 h-4 text-green-600" />
-              Gestionează platformele
-            </button>
-            <div className="border-t border-slate-100" />
-            <button
-              onClick={handleAiAssistant}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              <Bot className="w-4 h-4 text-blue-500" />
-              AI Assistant
-            </button>
-            <div className="border-t border-slate-100" />
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
-          </div>
-        )}
 
-        {/* Clickable user row */}
-        <button
-          type="button"
-          onClick={() => setMenuOpen((prev) => !prev)}
-          className="w-full flex items-center gap-3 rounded-lg p-2 hover:bg-slate-50 transition-all text-left"
-        >
+        <div className="w-full flex items-center gap-3 rounded-lg p-2  text-left">
           {user?.avatar ? (
             <Image
               src={user.avatar}
@@ -200,12 +185,13 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
             <p className="text-xs text-slate-500 truncate">{user?.email ?? ""}</p>
           </div>
 
-          <ChevronUp
-            className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-200 ${
-              menuOpen ? "" : "rotate-180"
-            }`}
-          />
-        </button>
+          <button
+              onClick={handleLogout}
+              className=" gap-3 px-4 py-3 text-sm text-red-600 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
