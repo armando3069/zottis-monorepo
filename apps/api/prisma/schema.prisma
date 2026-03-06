@@ -40,6 +40,13 @@ model conversations {
   contact_avatar      String?
   platform            String
   created_at          DateTime          @default(now())
+
+  lifecycle_status    String            @default("NEW_LEAD")
+  contact_email       String?
+  contact_phone       String?
+  contact_country     String?
+  contact_language    String?
+
   platform_account    platform_accounts @relation(fields: [platform_account_id], references: [id])
   messages            messages[]
 
