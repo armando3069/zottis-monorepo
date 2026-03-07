@@ -2,10 +2,9 @@
 
 import { io, Socket } from "socket.io-client";
 import { getToken } from "@/services/auth/auth-service";
+import { WS_URL } from "@/lib/config";
 
 let socket: Socket | null = null;
-
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:3001";
 
 export function getSocket(): Socket {
     if (!socket) {
