@@ -5,12 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, CheckCircle2, LayoutTemplate, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getToken } from "@/services/auth/auth-service";
-import {
-  connectTelegram,
-  connectWhatsapp,
-  getPlatformAccounts,
-  type PlatformAccount,
-} from "@/services/platforms/platform-service";
+import { platformsService } from "@/services/platforms/platforms.service";
+import type { PlatformAccount } from "@/services/platforms/platforms.types";
 
 // ── Platform config ─────────────────────────────────────────────────────────
 
@@ -91,7 +87,8 @@ function ConnectPlatformsContent() {
 
     platformsChecked.current = true;
 
-    getPlatformAccounts(token)
+    platformsService
+      .getAccounts()
       .then(({ total, accounts }) => {
         const ids = new Set(accounts.map((a: PlatformAccount) => a.platform));
         setConnectedIds(ids);
@@ -123,12 +120,10 @@ function ConnectPlatformsContent() {
 
   const handleWhatsappSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const token = getToken();
-    if (!token) return;
     setConnectError(null);
     setIsConnecting(true);
     try {
-      await connectWhatsapp(token, waAccessToken.trim(), waPhoneNumberId.trim());
+      await platformsService.connectWhatsapp(waAccessToken.trim(), waPhoneNumberId.trim());
       setToast("WhatsApp conectat cu succes.");
       setConnectedIds((prev) => new Set(prev).add("whatsapp"));
       setSelectedId(null);
@@ -145,12 +140,10 @@ function ConnectPlatformsContent() {
 
   const handleTelegramSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const token = getToken();
-    if (!token) return;
     setConnectError(null);
     setIsConnecting(true);
     try {
-      await connectTelegram(token, tgBotToken.trim());
+      await platformsService.connectTelegram(tgBotToken.trim());
       setToast("Telegram conectat cu succes.");
       setConnectedIds((prev) => new Set(prev).add("telegram"));
       setSelectedId(null);

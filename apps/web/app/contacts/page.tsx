@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Users, Search, ChevronDown, Loader2, Mail, Phone } from "lucide-react";
-import { getContacts, type ContactRow } from "@/services/api/api";
+import { contactsService, contactsQueryKeys } from "@/services/contacts/contacts.service";
+import type { ContactRow } from "@/services/contacts/contacts.types";
 import { LIFECYCLE_STAGES, getLifecycleStage } from "@/lib/lifecycle";
 import { AvatarWithPlatformBadge } from "@/components/chat/AvatarWithPlatformBadge";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -11,10 +13,10 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 // ── Platform filter options ───────────────────────────────────────────────────
 
 const PLATFORM_OPTIONS = [
-  { value: "",          label: "All Platforms" },
-  { value: "telegram",  label: "Telegram" },
-  { value: "whatsapp",  label: "WhatsApp" },
-  { value: "teams",     label: "Teams" },
+  { value: "", label: "All Platforms" },
+  { value: "telegram", label: "Telegram" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "teams", label: "Teams" },
 ];
 
 // ── Small select dropdown ─────────────────────────────────────────────────────
@@ -57,36 +59,29 @@ function displayName(row: ContactRow): string {
 function ContactsPageContent() {
   const router = useRouter();
 
-  const [contacts, setContacts] = useState<ContactRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [search, setSearch]     = useState("");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [platform, setPlatform] = useState("");
   const [lifecycle, setLifecycle] = useState("");
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getContacts({
-        platform:  platform  || undefined,
-        lifecycle: lifecycle || undefined,
-        search:    search    || undefined,
-      });
-      setContacts(data);
-    } catch {
-      setError("Nu s-au putut încărca contactele. Verifică conexiunea la server.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [platform, lifecycle, search]);
-
-  // Load on mount and when filters change (debounce search)
+  // Debounce the search input (300 ms)
   useEffect(() => {
-    const id = setTimeout(load, search ? 300 : 0);
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(id);
-  }, [load, search]);
+  }, [search]);
+
+  const filters = {
+    platform: platform || undefined,
+    lifecycle: lifecycle || undefined,
+    search: debouncedSearch || undefined,
+  };
+
+  const {
+    data: contacts = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery(contactsQueryKeys.list(filters));
 
   const handleRowClick = (row: ContactRow) => {
     sessionStorage.setItem("pendingConvId", String(row.id));
@@ -120,14 +115,15 @@ function ContactsPageContent() {
               <div>
                 <h1 className="text-2xl font-bold text-slate-800">Contacts</h1>
                 <p className="text-sm text-slate-500">
-                  {isLoading ? "Se încarcă…" : `${contacts.length} contact${contacts.length !== 1 ? "e" : ""}`}
+                  {isLoading
+                    ? "Se încarcă…"
+                    : `${contacts.length} contact${contacts.length !== 1 ? "e" : ""}`}
                 </p>
               </div>
             </div>
 
             {/* Filters */}
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <input
@@ -139,17 +135,9 @@ function ContactsPageContent() {
                 />
               </div>
 
-              <FilterSelect
-                value={platform}
-                onChange={setPlatform}
-                options={PLATFORM_OPTIONS}
-              />
+              <FilterSelect value={platform} onChange={setPlatform} options={PLATFORM_OPTIONS} />
 
-              <FilterSelect
-                value={lifecycle}
-                onChange={setLifecycle}
-                options={lifecycleOptions}
-              />
+              <FilterSelect value={lifecycle} onChange={setLifecycle} options={lifecycleOptions} />
             </div>
           </div>
         </div>
@@ -161,11 +149,13 @@ function ContactsPageContent() {
               <Loader2 className="h-5 w-5 animate-spin" />
               Se încarcă contactele…
             </div>
-          ) : error ? (
+          ) : isError ? (
             <div className="py-16 text-center">
-              <p className="text-sm text-red-500">{error}</p>
+              <p className="text-sm text-red-500">
+                Nu s-au putut încărca contactele. Verifică conexiunea la server.
+              </p>
               <button
-                onClick={load}
+                onClick={() => refetch()}
                 className="mt-3 text-sm text-blue-600 hover:underline"
               >
                 Încearcă din nou
@@ -210,7 +200,6 @@ function ContactsPageContent() {
                       onClick={() => handleRowClick(row)}
                       className="cursor-pointer transition-colors hover:bg-blue-50/40"
                     >
-                      {/* Name */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <AvatarWithPlatformBadge
@@ -224,21 +213,17 @@ function ContactsPageContent() {
                           </span>
                         </div>
                       </td>
-
-                      {/* Platform */}
                       <td className="px-4 py-3.5">
                         <span className="capitalize text-xs text-slate-500">{row.platform}</span>
                       </td>
-
-                      {/* Lifecycle */}
                       <td className="px-4 py-3.5">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium ${stage.badgeClass}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-xs font-medium ${stage.badgeClass}`}
+                        >
                           <span>{stage.emoji}</span>
                           <span>{stage.label}</span>
                         </span>
                       </td>
-
-                      {/* Email */}
                       <td className="px-4 py-3.5 text-slate-600">
                         {row.contact_email ? (
                           <div className="flex items-center gap-1.5">
@@ -249,8 +234,6 @@ function ContactsPageContent() {
                           <span className="text-slate-300">—</span>
                         )}
                       </td>
-
-                      {/* Phone */}
                       <td className="px-4 py-3.5 text-slate-600">
                         {row.contact_phone ? (
                           <div className="flex items-center gap-1.5">
@@ -268,8 +251,7 @@ function ContactsPageContent() {
             </table>
           )}
 
-          {/* Footer count */}
-          {!isLoading && !error && contacts.length > 0 && (
+          {!isLoading && !isError && contacts.length > 0 && (
             <div className="border-t border-slate-100 bg-slate-50 px-5 py-2.5">
               <p className="text-xs text-slate-400">
                 {contacts.length} contact{contacts.length !== 1 ? "e" : ""} afișate
