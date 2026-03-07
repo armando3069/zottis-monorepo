@@ -4,6 +4,7 @@ import Image from "next/image";
 import { TrendingUp, Cable, LogOut, ChevronUp, Bot, Bell, BellOff, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
+import { useClickOutside } from "@/hooks/useClickOutside";
 import type { Channel } from "@/lib/types";
 import { ChannelItem } from "./ChannelItem";
 import { useAuth } from "@/context/AuthContext";
@@ -41,16 +42,7 @@ export function Sidebar({ channels, selectedChannel, onSelectChannel }: SidebarP
   };
 
   // Close menu when clicking outside the user section
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
+  useClickOutside(menuRef, () => setMenuOpen(false), menuOpen);
 
   const [notifPermission, setNotifPermission] = useState<string>("default");
 
