@@ -15,6 +15,8 @@ export interface ConversationViewModel {
   contactPhone?: string | null;
   contactCountry?: string | null;
   contactLanguage?: string | null;
+  // Archive status
+  isArchived: boolean;
 }
 
 /** Rich email metadata stored in message.attachments.emailMeta */
