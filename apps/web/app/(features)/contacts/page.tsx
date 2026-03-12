@@ -13,13 +13,17 @@ import {
   ChevronRight,
   ChevronDown,
   Check,
+  FileSpreadsheet,
+  CheckCircle2,
 } from "lucide-react";
 import * as Checkbox from "@radix-ui/react-checkbox";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { contactsQueryKeys } from "@/services/contacts/contacts.service";
 import type { ContactRow } from "@/services/contacts/contacts.types";
 import { getLifecycleStage } from "@/lib/lifecycle";
 import { AvatarWithPlatformBadge } from "@/components/chat/AvatarWithPlatformBadge";
 import { cn } from "@/lib/cn";
+import { exportContactsToXlsx } from "@/lib/exportContacts";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -145,6 +149,7 @@ export default function ContactsPage() {
   const [page, setPage]                         = useState(1);
   const [selectedIds, setSelectedIds]           = useState<Set<number>>(new Set());
   const [sortDir, setSortDir]                   = useState<"asc" | "desc">("desc");
+  const [exportToast, setExportToast]           = useState<string | null>(null);
 
   useEffect(() => {
     const id = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
@@ -200,6 +205,26 @@ export default function ContactsPage() {
     setSelectedIds(next);
   }
 
+  // ── Export handlers ────────────────────────────────────────────────────────
+
+  function showExportToast(msg: string) {
+    setExportToast(msg);
+    setTimeout(() => setExportToast(null), 2500);
+  }
+
+  function handleExportAll() {
+    if (!sorted.length) return;
+    exportContactsToXlsx(sorted, selectedCategory);
+    showExportToast(`Exported ${sorted.length} contact${sorted.length !== 1 ? "s" : ""} to Excel`);
+  }
+
+  function handleExportSelected() {
+    const rows = sorted.filter((c) => selectedIds.has(c.id));
+    if (!rows.length) return;
+    exportContactsToXlsx(rows, "selected");
+    showExportToast(`Exported ${rows.length} selected contact${rows.length !== 1 ? "s" : ""} to Excel`);
+  }
+
   const handleRowClick = (row: ContactRow) => {
     sessionStorage.setItem("pendingConvId", String(row.id));
     router.push("/");
@@ -211,6 +236,14 @@ export default function ContactsPage() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden rounded-xl bg-[var(--bg-surface)] shadow-[var(--shadow-card)] border border-[var(--border-default)]">
+
+      {/* ── Export toast ──────────────────────────────────────────── */}
+      {exportToast && (
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-700 shadow-[var(--shadow-dropdown)] dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {exportToast}
+        </div>
+      )}
 
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-6 pt-5 pb-4">
@@ -230,9 +263,67 @@ export default function ContactsPage() {
               {selectedIds.size} selected
             </span>
           )}
-          <button className="h-9 px-3.5 text-[13px] font-medium rounded-[var(--radius-button)] border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] active:scale-[0.98] transition-all duration-120 ease-out">
-            Actions
-          </button>
+
+          {/* ── Actions dropdown ───────────────────────────────────── */}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="h-9 px-3.5 text-[13px] font-medium rounded-[var(--radius-button)] border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] active:scale-[0.98] transition-all duration-120 ease-out inline-flex items-center gap-1.5 data-[state=open]:bg-[var(--bg-surface-hover)]">
+                Actions
+                <ChevronDown className="h-3.5 w-3.5 text-[var(--text-tertiary)] transition-transform duration-150 [[data-state=open]_&]:rotate-180" />
+              </button>
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                sideOffset={6}
+                className="w-56 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-button)] shadow-[var(--shadow-dropdown)] z-50 overflow-hidden py-1 animate-in fade-in-0 zoom-in-95"
+              >
+                {/* Section label */}
+                <div className="px-3 pt-2 pb-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                    Export
+                  </p>
+                </div>
+
+                {/* Export all filtered contacts */}
+                <DropdownMenu.Item
+                  onSelect={handleExportAll}
+                  disabled={sorted.length === 0}
+                  className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] cursor-pointer outline-none transition-colors duration-120 disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-500" />
+                  <span className="flex-1">Export to Excel</span>
+                  {sorted.length > 0 && (
+                    <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">
+                      {sorted.length}
+                    </span>
+                  )}
+                </DropdownMenu.Item>
+
+                {/* Export selected — only shown when rows are checked */}
+                {selectedIds.size > 0 && (
+                  <DropdownMenu.Item
+                    onSelect={handleExportSelected}
+                    className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] cursor-pointer outline-none transition-colors duration-120"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 shrink-0 text-[var(--accent-primary)]" />
+                    <span className="flex-1">Export Selected</span>
+                    <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums">
+                      {selectedIds.size}
+                    </span>
+                  </DropdownMenu.Item>
+                )}
+
+                {sorted.length === 0 && (
+                  <p className="px-3 py-1.5 pb-2 text-[12px] text-[var(--text-tertiary)]">
+                    No contacts to export
+                  </p>
+                )}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+
           <button className="h-9 px-3.5 text-[13px] font-medium rounded-[var(--radius-button)] bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] active:scale-[0.98] transition-all duration-120 ease-out shadow-[var(--shadow-xs)]">
             New contact
           </button>
