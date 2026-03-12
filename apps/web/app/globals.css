@@ -111,3 +111,130 @@ body {
   border-radius: 3px;
   background: var(--border-default);
 }
+
+/* ── Email content normalization ─────────────────────────────────────────────
+   Applied to the EmailHtmlViewer's inner container. Normalises the wide
+   variety of HTML that email clients generate into something readable and
+   visually consistent with the app's design system.                         */
+
+.email-content {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #374151;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* ─ Images ─ */
+.email-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
+}
+
+/* ─ Tables ─ */
+.email-content table {
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  overflow-x: auto;
+  display: block;
+}
+.email-content td,
+.email-content th {
+  padding: 6px 10px;
+  border: 1px solid #E7E3DC;
+  vertical-align: top;
+  word-break: break-word;
+}
+.email-content th {
+  background: #F9F8F6;
+  font-weight: 600;
+}
+
+/* ─ Links ─ */
+.email-content a {
+  color: #111827;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+.email-content a:hover {
+  color: #374151;
+}
+
+/* ─ Paragraphs & spacing ─ */
+.email-content p {
+  margin: 0 0 0.8em 0;
+}
+.email-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* ─ Headings — scale them down so they don't dominate ─ */
+.email-content h1 { font-size: 1.15em; font-weight: 700; margin: 0.8em 0 0.4em; }
+.email-content h2 { font-size: 1.05em; font-weight: 600; margin: 0.8em 0 0.4em; }
+.email-content h3,
+.email-content h4,
+.email-content h5,
+.email-content h6 { font-size: 0.95em; font-weight: 600; margin: 0.6em 0 0.3em; }
+
+/* ─ Lists ─ */
+.email-content ul,
+.email-content ol {
+  padding-left: 1.4em;
+  margin: 0.4em 0 0.8em;
+}
+.email-content li {
+  margin-bottom: 0.25em;
+}
+
+/* ─ Blockquotes (often used for reply threads) ─ */
+.email-content blockquote {
+  border-left: 3px solid #E7E3DC;
+  margin: 0.75em 0;
+  padding: 0.4em 0 0.4em 1em;
+  color: #6B7280;
+  font-size: 0.93em;
+}
+
+/* ─ Code ─ */
+.email-content pre,
+.email-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  background: #F3F4F6;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+.email-content pre {
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.email-content pre code {
+  padding: 0;
+  background: none;
+}
+
+/* ─ Dividers ─ */
+.email-content hr {
+  border: none;
+  border-top: 1px solid #E7E3DC;
+  margin: 1em 0;
+}
+
+/* ─ Inline elements ─ */
+.email-content strong, .email-content b { font-weight: 600; }
+.email-content em, .email-content i     { font-style: italic; }
+
+/* ─ Contain wide marketing email layouts ─ */
+.email-content > div,
+.email-content > table,
+.email-content > center {
+  max-width: 100% !important;
+  overflow: hidden;
+}

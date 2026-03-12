@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TelegramModule } from './telegram/telegram.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { EmailModule } from './email/email.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ChatModule } from './chat/chat.module';
 import { AuthModule } from './auth/auth.module';
@@ -16,6 +17,7 @@ import { ConversationsModule } from './conversations/conversations.module';
     AuthModule,
     TelegramModule,
     WhatsappModule,
+    EmailModule,
     ChatModule,
     AiAssistantModule,
     KnowledgeBaseModule,

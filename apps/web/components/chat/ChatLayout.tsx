@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useConversations } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
@@ -18,9 +19,16 @@ import { ChatArea } from "./ChatArea";
 const SUGGESTIONS_STALE_MS = 10 * 60 * 1000; // 10 minutes
 const SUGGESTIONS_GC_MS   = 30 * 60 * 1000; // 30 minutes
 
+/** Platforms that count as "chats" (non-email) */
+const CHAT_PLATFORMS = new Set(["telegram", "whatsapp", "teams"]);
+
 export function ChatLayout() {
-  const [selectedChannel, setSelectedChannel] = useState("all");
-  const [conversationFilter, setConversationFilter] = useState<"all" | "unread">("all");
+  const searchParams = useSearchParams();
+
+  // Category comes from the sidebar URL param: all | chats | emails
+  const inboxCategory = searchParams.get("inboxCategory") ?? "all";
+
+  const [conversationFilter, setConversationFilter] = useState<"all" | "unread" | "archived">("all");
   const [selectedConversation, setSelectedConversation] = useState<ConversationViewModel | null>(null);
   const [messageInput, setMessageInput] = useState("");
 
@@ -28,6 +36,13 @@ export function ChatLayout() {
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
 
   const { conversations, setConversations, isLoading: isLoadingConversations } = useConversations();
+
+  // Reset conversation filter to "all" whenever category changes
+  useEffect(() => {
+    setConversationFilter("all");
+    setSelectedConversation(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inboxCategory]);
 
   // Auto-select a conversation passed via sessionStorage (e.g. from /contacts page)
   useEffect(() => {
@@ -55,7 +70,7 @@ export function ChatLayout() {
     [setConversations],
   );
 
-  const { messages, isLoading: isLoadingMessages } = useMessages({
+  const { messages, setMessages, isLoading: isLoadingMessages } = useMessages({
     selectedConversation,
     onPreviewUpdate: handlePreviewUpdate,
   });
@@ -124,6 +139,8 @@ export function ChatLayout() {
             lastMessage: msg.text ?? c.lastMessage,
             time: formatMessageTime(msg.timestamp ?? msg.created_at),
             unread: c.unread + 1,
+            // Auto-unarchive when a client message arrives (mirrors backend logic)
+            isArchived: false,
           };
         })
       );
@@ -131,14 +148,54 @@ export function ChatLayout() {
     return () => { unsub(); };
   }, [setConversations]);
 
+  // ── Archive / Unarchive ───────────────────────────────────────────────────
+
+  const handleArchive = useCallback(
+    async (id: number) => {
+      try {
+        await conversationsService.archive(id);
+        setConversations((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, isArchived: true } : c))
+        );
+        // Deselect if the archived conversation was currently open
+        setSelectedConversation((prev) => (prev?.id === id ? null : prev));
+      } catch (e) {
+        console.error("archive error", e);
+      }
+    },
+    [setConversations],
+  );
+
+  const handleUnarchive = useCallback(
+    async (id: number) => {
+      try {
+        await conversationsService.unarchive(id);
+        setConversations((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, isArchived: false } : c))
+        );
+      } catch (e) {
+        console.error("unarchive error", e);
+      }
+    },
+    [setConversations],
+  );
+
   // ── Channels & filtering ─────────────────────────────────────────────────
 
-  const channels = buildChannels(conversations);
+  // Channel counts based on active (non-archived) conversations only
+  const activeConversations = conversations.filter((c) => !c.isArchived);
+  const channels = buildChannels(activeConversations);
 
   const filteredConversations = conversations.filter((conv) => {
-    if (selectedChannel !== "all" && conv.platform !== selectedChannel) return false;
-    if (conversationFilter === "unread" && conv.unread === 0) return false;
-    return true;
+    // ── Category filter (from sidebar) ──
+    if (inboxCategory === "chats"  && !CHAT_PLATFORMS.has(conv.platform)) return false;
+    if (inboxCategory === "emails" && conv.platform !== "email")           return false;
+
+    // ── State filter (from top chips) ──
+    if (conversationFilter === "archived") return conv.isArchived;
+    if (conversationFilter === "unread")   return !conv.isArchived && conv.unread > 0;
+    // "all" → show only active (non-archived) conversations
+    return !conv.isArchived;
   });
 
   // ── Contact info / lifecycle update ──────────────────────────────────────
@@ -185,14 +242,33 @@ export function ChatLayout() {
     if (!messageInput.trim() || !selectedConversation) return;
     const text = messageInput.trim();
     setMessageInput("");
+
+    // ── Optimistic update: show message immediately before server confirms ──
+    const now = new Date().toISOString();
+    const optimisticId = -Date.now(); // negative so we can identify it later
+    const optimisticMsg = {
+      id: optimisticId,
+      conversation_id: selectedConversation.id,
+      sender_type: "bot" as const,
+      text,
+      platform: selectedConversation.platform,
+      timestamp: now,
+      created_at: now,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
     try {
       await messagesService.sendReply(
         selectedConversation.id,
         text,
         selectedConversation.platform,
       );
+      // The real message will arrive via Socket.IO "newMessage" and replace
+      // the optimistic one automatically (see useMessages deduplication logic)
     } catch (e) {
       console.error("sendReply error", e);
+      // Remove the optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
     }
   };
 
@@ -204,10 +280,10 @@ export function ChatLayout() {
         isLoading={isLoadingConversations}
         conversationFilter={conversationFilter}
         channels={channels}
-        selectedChannel={selectedChannel}
-        onSelectChannel={setSelectedChannel}
+        inboxCategory={inboxCategory}
         onSelectConversation={setSelectedConversation}
         onFilterChange={setConversationFilter}
+        onUnarchive={handleUnarchive}
       />
       <ChatArea
         conversation={selectedConversation}
@@ -221,6 +297,7 @@ export function ChatLayout() {
         onToggleSuggestions={handleToggleSuggestions}
         onCloseSuggestions={handleCloseSuggestions}
         onUpdateConversation={handleUpdateConversation}
+        onArchive={handleArchive}
         onSend={handleSend}
       />
     </div>

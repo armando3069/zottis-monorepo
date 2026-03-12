@@ -16,6 +16,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronDown,
+  MessageSquare,
+  Mail,
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { useQuery } from "@tanstack/react-query";
@@ -43,6 +45,16 @@ const PRIMARY_NAV: NavItem[] = [
 const SECONDARY_NAV: NavItem[] = [
   { id: "sentiment", label: "Sentiment Analysis", href: "#",                          icon: TrendingUp },
   { id: "platforms", label: "Manage Platforms",    href: "/connect-platforms?manage=1", icon: Cable },
+];
+
+// ── Inbox accordion categories ────────────────────────────────────────────────
+
+type InboxCategory = { id: string; label: string; icon: typeof Inbox };
+
+const INBOX_CATEGORIES: InboxCategory[] = [
+  { id: "all",    label: "All",    icon: Inbox },
+  { id: "chats",  label: "Chats",  icon: MessageSquare },
+  { id: "emails", label: "Emails", icon: Mail },
 ];
 
 // ── Contacts accordion categories ────────────────────────────────────────────
@@ -121,12 +133,16 @@ export function AppSidebar() {
   const { user, logout }     = useAuth();
   const { expanded, toggle } = useSidebar();
 
+  const onInbox         = pathname === "/";
   const onContacts      = pathname === "/contacts" || pathname.startsWith("/contacts/");
+  const currentInboxCat = searchParams.get("inboxCategory") ?? "all";
   const currentCategory = searchParams.get("category") ?? "all";
 
-  const [contactsOpen, setContactsOpen]       = useState(onContacts);
+  const [inboxOpen,    setInboxOpen]    = useState(onInbox);
+  const [contactsOpen, setContactsOpen] = useState(onContacts);
   const [notifPermission, setNotifPermission] = useState<string>("default");
 
+  useEffect(() => { if (onInbox)    setInboxOpen(true);    }, [onInbox]);
   useEffect(() => { if (onContacts) setContactsOpen(true); }, [onContacts]);
   useEffect(() => { setNotifPermission(getNotificationPermission()); }, []);
 
@@ -200,6 +216,58 @@ export function AppSidebar() {
         <div className={`flex-1 overflow-y-auto ${expanded ? "px-3" : "px-2"} pt-1 pb-3`}>
           <div className="space-y-0.5">
             {PRIMARY_NAV.map((item) => {
+
+              /* ── Inbox accordion ─────────────────────────────────── */
+              if (item.id === "inbox" && expanded) {
+                return (
+                  <div key="inbox">
+                    <button
+                      onClick={() => {
+                        if (!onInbox) router.push("/");
+                        setInboxOpen((o) => !o);
+                      }}
+                      className={`
+                        relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-120 ease-out
+                        ${onInbox
+                          ? "bg-white/80 text-[var(--text-primary)] font-medium shadow-[var(--shadow-xs)]"
+                          : "text-[var(--text-secondary)] hover:bg-white/50 hover:text-[var(--text-primary)]"
+                        }
+                      `}
+                    >
+                      <Inbox className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={onInbox ? 2 : 1.75} />
+                      <span className="text-[13px] leading-none flex-1 text-left">Inbox</span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform duration-200 ${
+                          inboxOpen ? "" : "-rotate-90"
+                        }`}
+                      />
+                    </button>
+
+                    {inboxOpen && (
+                      <div className="mt-0.5 space-y-px ml-1">
+                        {INBOX_CATEGORIES.map((cat) => {
+                          const isActiveCat = onInbox && currentInboxCat === cat.id;
+                          return (
+                            <Link
+                              key={cat.id}
+                              href={`/?inboxCategory=${cat.id}`}
+                              className={`
+                                flex items-center gap-2 pl-[30px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
+                                ${isActiveCat
+                                  ? "bg-white/60 text-[var(--text-primary)] font-medium"
+                                  : "text-[var(--text-secondary)] hover:bg-white/40 hover:text-[var(--text-primary)]"
+                                }
+                              `}
+                            >
+                              <span>{cat.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
 
               /* ── Contacts accordion ──────────────────────────────── */
               if (item.id === "contacts" && expanded) {

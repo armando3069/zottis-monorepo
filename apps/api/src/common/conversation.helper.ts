@@ -27,6 +27,8 @@ export async function updateConversationLastMessage(
       last_message_at:          message.timestamp ?? message.created_at,
       last_message_sender_type: message.sender_type,
       ...(isIncoming && { unread_count: { increment: 1 } }),
+      // Auto-unarchive when the contact writes back
+      ...(isIncoming && { is_archived: false }),
     },
   });
 }

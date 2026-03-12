@@ -51,6 +51,7 @@ model conversations {
   last_message_at          DateTime?
   last_message_sender_type String?
   unread_count             Int               @default(0)
+  is_archived              Boolean           @default(false)
 
   platform_account    platform_accounts @relation(fields: [platform_account_id], references: [id])
   messages            messages[]

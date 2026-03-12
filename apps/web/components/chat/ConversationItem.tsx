@@ -1,8 +1,31 @@
-import { Tag } from "lucide-react";
+import { Mail, Tag } from "lucide-react";
 import type { ConversationViewModel } from "@/lib/types";
 import { getSentimentColor, getSentimentLabel } from "@/lib/chatUtils";
 import { getLifecycleStage } from "@/lib/lifecycle";
 import { AvatarWithPlatformBadge } from "./AvatarWithPlatformBadge";
+import { cleanEmailPlainText } from "@/components/email/EmailPlainTextView";
+
+// ── Email preview cleaning ────────────────────────────────────────────────────
+
+/** Produce a short, clean preview snippet from a raw email body string. */
+function buildEmailPreview(rawText: string): string {
+  // Strip any HTML tags that may have leaked into last_message_text
+  const strippedHtml = rawText
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"');
+
+  // Apply footer-cutting + URL removal from EmailPlainTextView
+  const cleaned = cleanEmailPlainText(strippedHtml);
+
+  // Collapse leftover multi-space runs and trim
+  return cleaned.replace(/\s{2,}/g, " ").trim();
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface ConversationItemProps {
   conversation: ConversationViewModel;
@@ -11,6 +34,13 @@ interface ConversationItemProps {
 }
 
 export function ConversationItem({ conversation: conv, isSelected, onSelect }: ConversationItemProps) {
+  const isEmail = conv.platform === "email";
+
+  // For email conversations, clean the noisy preview text
+  const previewText = isEmail
+    ? buildEmailPreview(conv.lastMessage)
+    : conv.lastMessage;
+
   return (
     <div
       onClick={() => onSelect(conv)}
@@ -38,17 +68,39 @@ export function ConversationItem({ conversation: conv, isSelected, onSelect }: C
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
-            <h3 className={`text-[13px] truncate ${conv.unread > 0 ? "font-semibold text-[var(--text-primary)]" : "font-medium text-[var(--text-primary)]"}`}>
+            <h3
+              className={`text-[13px] truncate ${
+                conv.unread > 0
+                  ? "font-semibold text-[var(--text-primary)]"
+                  : "font-medium text-[var(--text-primary)]"
+              }`}
+            >
               {conv.contact}
             </h3>
-            <span className={`text-[11px] ml-2 flex-shrink-0 tabular-nums ${conv.unread > 0 ? "font-medium text-[var(--text-secondary)]" : "text-[var(--text-tertiary)]"}`}>
+            <span
+              className={`text-[11px] ml-2 flex-shrink-0 tabular-nums ${
+                conv.unread > 0
+                  ? "font-medium text-[var(--text-secondary)]"
+                  : "text-[var(--text-tertiary)]"
+              }`}
+            >
               {conv.time}
             </span>
           </div>
 
-          <p className={`text-[12px] line-clamp-1 mb-1.5 leading-relaxed ${conv.unread > 0 ? "text-[var(--text-primary)] font-medium" : "text-[var(--text-secondary)]"}`}>
-            {conv.lastMessage}
-          </p>
+          {/* Preview row — for email, show a subtle icon prefix */}
+          <div
+            className={`flex items-center gap-1 text-[12px] line-clamp-1 mb-1.5 leading-relaxed ${
+              conv.unread > 0
+                ? "text-[var(--text-primary)] font-medium"
+                : "text-[var(--text-secondary)]"
+            }`}
+          >
+            {isEmail && (
+              <Mail className="h-3 w-3 shrink-0 text-[#9CA3AF]" />
+            )}
+            <span className="truncate">{previewText || "(no content)"}</span>
+          </div>
 
           <div className="flex items-center gap-1.5 flex-wrap">
             <span
@@ -59,7 +111,9 @@ export function ConversationItem({ conversation: conv, isSelected, onSelect }: C
             {(() => {
               const stage = getLifecycleStage(conv.lifecycleStatus);
               return (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-[var(--radius-badge)] border leading-none ${stage.badgeClass}`}>
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-[var(--radius-badge)] border leading-none ${stage.badgeClass}`}
+                >
                   {stage.emoji} {stage.label}
                 </span>
               );

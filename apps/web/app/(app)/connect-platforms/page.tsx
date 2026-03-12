@@ -2,7 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, CheckCircle2, Loader2, Copy, Check, ArrowRight } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Loader2, Copy, Check, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getToken } from "@/services/auth/auth-service";
 import { platformsService } from "@/services/platforms/platforms.service";
@@ -64,6 +64,14 @@ const PLATFORMS: PlatformConfig[] = [
     icon: <WhatsAppIcon />,
     status: "available",
     accentColor: "text-green-500",
+  },
+  {
+    id: "email",
+    label: "Email (IMAP/SMTP)",
+    description: "Conectează Gmail sau Outlook cu parola de aplicație.",
+    icon: <EmailIcon />,
+    status: "available",
+    accentColor: "text-orange-500",
   },
   {
     id: "teams",
@@ -175,6 +183,18 @@ function ConnectPlatformsContent() {
   const [waAccessToken, setWaAccessToken] = useState("");
   const [waPhoneNumberId, setWaPhoneNumberId] = useState("");
 
+  // Email fields
+  const [emEmail, setEmEmail] = useState("");
+  const [emPassword, setEmPassword] = useState("");
+  const [emProvider, setEmProvider] = useState<"gmail" | "outlook" | "custom">("gmail");
+  const [emShowAdvanced, setEmShowAdvanced] = useState(false);
+  const [emImapHost, setEmImapHost] = useState("");
+  const [emImapPort, setEmImapPort] = useState("993");
+  const [emImapSecure, setEmImapSecure] = useState(true);
+  const [emSmtpHost, setEmSmtpHost] = useState("");
+  const [emSmtpPort, setEmSmtpPort] = useState("587");
+  const [emSmtpSecure, setEmSmtpSecure] = useState(false);
+
   const handleCardClick = (platform: PlatformConfig) => {
     if (platform.status !== "available") return;
     if (connectedIds.has(platform.id)) return;
@@ -183,6 +203,16 @@ function ConnectPlatformsContent() {
     setTgBotToken("");
     setWaAccessToken("");
     setWaPhoneNumberId("");
+    setEmEmail("");
+    setEmPassword("");
+    setEmProvider("gmail");
+    setEmShowAdvanced(false);
+    setEmImapHost("");
+    setEmImapPort("993");
+    setEmImapSecure(true);
+    setEmSmtpHost("");
+    setEmSmtpPort("587");
+    setEmSmtpSecure(false);
   };
 
   // ── WhatsApp connect ──────────────────────────────────────────────────────
@@ -215,6 +245,49 @@ function ConnectPlatformsContent() {
       await platformsService.connectTelegram(tgBotToken.trim());
       setToast("Telegram conectat cu succes.");
       setConnectedIds((prev) => new Set(prev).add("telegram"));
+      setSelectedId(null);
+      if (!isManaging) setTimeout(() => router.replace("/"), 1500);
+      else setTimeout(() => setToast(null), 2000);
+    } catch (err) {
+      setConnectError(err instanceof Error ? err.message : "A apărut o eroare.");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // ── Email connect ─────────────────────────────────────────────────────────
+
+  const handleEmailSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setConnectError(null);
+    setIsConnecting(true);
+    try {
+      const payload: Parameters<typeof platformsService.connectEmail>[0] = {
+        email: emEmail.trim(),
+        password: emPassword,
+        provider: emProvider,
+      };
+
+      if (emProvider === "custom" || emShowAdvanced) {
+        if (emImapHost.trim()) {
+          payload.imapOverride = {
+            host: emImapHost.trim(),
+            port: parseInt(emImapPort, 10) || 993,
+            secure: emImapSecure,
+          };
+        }
+        if (emSmtpHost.trim()) {
+          payload.smtpOverride = {
+            host: emSmtpHost.trim(),
+            port: parseInt(emSmtpPort, 10) || 587,
+            secure: emSmtpSecure,
+          };
+        }
+      }
+
+      await platformsService.connectEmail(payload);
+      setToast("Email conectat cu succes.");
+      setConnectedIds((prev) => new Set(prev).add("email"));
       setSelectedId(null);
       if (!isManaging) setTimeout(() => router.replace("/"), 1500);
       else setTimeout(() => setToast(null), 2000);
@@ -341,6 +414,34 @@ function ConnectPlatformsContent() {
                   isConnecting={isConnecting}
                   error={connectError}
                   onSubmit={handleWhatsappSubmit}
+                />
+              )}
+
+              {selectedId === "email" && (
+                <EmailForm
+                  email={emEmail}
+                  password={emPassword}
+                  provider={emProvider}
+                  showAdvanced={emShowAdvanced}
+                  imapHost={emImapHost}
+                  imapPort={emImapPort}
+                  imapSecure={emImapSecure}
+                  smtpHost={emSmtpHost}
+                  smtpPort={emSmtpPort}
+                  smtpSecure={emSmtpSecure}
+                  onEmailChange={setEmEmail}
+                  onPasswordChange={setEmPassword}
+                  onProviderChange={setEmProvider}
+                  onShowAdvancedChange={setEmShowAdvanced}
+                  onImapHostChange={setEmImapHost}
+                  onImapPortChange={setEmImapPort}
+                  onImapSecureChange={setEmImapSecure}
+                  onSmtpHostChange={setEmSmtpHost}
+                  onSmtpPortChange={setEmSmtpPort}
+                  onSmtpSecureChange={setEmSmtpSecure}
+                  isConnecting={isConnecting}
+                  error={connectError}
+                  onSubmit={handleEmailSubmit}
                 />
               )}
 
@@ -501,7 +602,7 @@ function EmptyConfigPanel() {
         Nicio platformă selectată
       </p>
       <p className="mt-2 max-w-[220px] text-[13px] text-[#9CA3AF] leading-relaxed">
-        Alege Telegram sau WhatsApp din stânga pentru a începe configurarea.
+        Alege Telegram, WhatsApp sau Email din stânga pentru a începe configurarea.
       </p>
     </div>
   );
@@ -785,6 +886,262 @@ function WhatsappForm({
   );
 }
 
+// ── Email connect form ────────────────────────────────────────────────────────
+
+const EMAIL_PROVIDERS = [
+  { value: "gmail", label: "Gmail" },
+  { value: "outlook", label: "Outlook / Microsoft 365" },
+  { value: "custom", label: "Custom (IMAP/SMTP)" },
+] as const;
+
+function EmailForm({
+  email,
+  password,
+  provider,
+  showAdvanced,
+  imapHost,
+  imapPort,
+  imapSecure,
+  smtpHost,
+  smtpPort,
+  smtpSecure,
+  onEmailChange,
+  onPasswordChange,
+  onProviderChange,
+  onShowAdvancedChange,
+  onImapHostChange,
+  onImapPortChange,
+  onImapSecureChange,
+  onSmtpHostChange,
+  onSmtpPortChange,
+  onSmtpSecureChange,
+  isConnecting,
+  error,
+  onSubmit,
+}: {
+  email: string;
+  password: string;
+  provider: "gmail" | "outlook" | "custom";
+  showAdvanced: boolean;
+  imapHost: string;
+  imapPort: string;
+  imapSecure: boolean;
+  smtpHost: string;
+  smtpPort: string;
+  smtpSecure: boolean;
+  onEmailChange: (v: string) => void;
+  onPasswordChange: (v: string) => void;
+  onProviderChange: (v: "gmail" | "outlook" | "custom") => void;
+  onShowAdvancedChange: (v: boolean) => void;
+  onImapHostChange: (v: string) => void;
+  onImapPortChange: (v: string) => void;
+  onImapSecureChange: (v: boolean) => void;
+  onSmtpHostChange: (v: string) => void;
+  onSmtpPortChange: (v: string) => void;
+  onSmtpSecureChange: (v: boolean) => void;
+  isConnecting: boolean;
+  error: string | null;
+  onSubmit: (e: FormEvent) => void;
+}) {
+  const isCustom = provider === "custom";
+  const showAdvancedSection = showAdvanced || isCustom;
+
+  return (
+    <div className={`${CARD} p-6`}>
+      {/* Header */}
+      <div className="flex items-start gap-4 pb-5 border-b border-[#F3F4F6]">
+        <div className={ICON_BOX}>
+          <span className="text-orange-500">
+            <EmailIcon />
+          </span>
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-semibold text-[#111827] leading-tight">
+            Conectează Email
+          </h2>
+          <p className="mt-1 text-[13px] text-[#6B7280] leading-relaxed">
+            IMAP + SMTP cu parolă de aplicație
+          </p>
+        </div>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={onSubmit} className="mt-5 space-y-5">
+
+        {/* Provider */}
+        <div className="space-y-2">
+          <label htmlFor="em-provider" className={LABEL}>
+            Provider
+          </label>
+          <select
+            id="em-provider"
+            value={provider}
+            onChange={(e) => onProviderChange(e.target.value as "gmail" | "outlook" | "custom")}
+            className={INPUT}
+          >
+            {EMAIL_PROVIDERS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Email */}
+        <div className="space-y-2">
+          <label htmlFor="em-email" className={LABEL}>
+            Adresă email
+          </label>
+          <input
+            id="em-email"
+            type="email"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            placeholder="you@gmail.com"
+            required
+            autoFocus
+            className={INPUT}
+          />
+        </div>
+
+        {/* Password */}
+        <div className="space-y-2">
+          <label htmlFor="em-password" className={LABEL}>
+            {provider === "gmail" ? "Parolă de aplicație" : provider === "outlook" ? "Parolă cont / aplicație" : "Parolă"}
+          </label>
+          <input
+            id="em-password"
+            type="password"
+            value={password}
+            onChange={(e) => onPasswordChange(e.target.value)}
+            placeholder="••••••••••••••••"
+            required
+            className={INPUT}
+          />
+          {provider === "gmail" && (
+            <p className="text-[12px] text-[#9CA3AF] leading-relaxed">
+              Generează o parolă de aplicație în{" "}
+              <span className="font-semibold text-[#6B7280]">Google Account → Security → App passwords</span>.
+            </p>
+          )}
+          {provider === "outlook" && (
+            <p className="text-[12px] text-[#9CA3AF] leading-relaxed">
+              Activează IMAP în setările Outlook și folosește parola contului.
+            </p>
+          )}
+        </div>
+
+        {/* Advanced toggle (only for gmail/outlook; always shown for custom) */}
+        {!isCustom && (
+          <button
+            type="button"
+            onClick={() => onShowAdvancedChange(!showAdvanced)}
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#6B7280] hover:text-[#111827] transition-colors duration-150"
+          >
+            {showAdvanced ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            Setări avansate IMAP/SMTP
+          </button>
+        )}
+
+        {/* Advanced section */}
+        {showAdvancedSection && (
+          <div className="space-y-4 rounded-xl border border-[#F3F4F6] bg-[#FAFAFA] px-4 py-4">
+            <p className="text-[12px] font-semibold text-[#374151]">IMAP</p>
+            <div className="grid grid-cols-[1fr_80px_auto] gap-2 items-end">
+              <div className="space-y-1.5">
+                <label className={LABEL}>Host</label>
+                <input
+                  type="text"
+                  value={imapHost}
+                  onChange={(e) => onImapHostChange(e.target.value)}
+                  placeholder="imap.example.com"
+                  className={INPUT}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className={LABEL}>Port</label>
+                <input
+                  type="number"
+                  value={imapPort}
+                  onChange={(e) => onImapPortChange(e.target.value)}
+                  placeholder="993"
+                  className={INPUT}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className={LABEL}>SSL</label>
+                <div className="flex items-center h-[42px]">
+                  <input
+                    type="checkbox"
+                    id="imap-secure"
+                    checked={imapSecure}
+                    onChange={(e) => onImapSecureChange(e.target.checked)}
+                    className="h-4 w-4 rounded border-[#E5E7EB] text-[#111827] cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[12px] font-semibold text-[#374151] pt-1">SMTP</p>
+            <div className="grid grid-cols-[1fr_80px_auto] gap-2 items-end">
+              <div className="space-y-1.5">
+                <label className={LABEL}>Host</label>
+                <input
+                  type="text"
+                  value={smtpHost}
+                  onChange={(e) => onSmtpHostChange(e.target.value)}
+                  placeholder="smtp.example.com"
+                  className={INPUT}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className={LABEL}>Port</label>
+                <input
+                  type="number"
+                  value={smtpPort}
+                  onChange={(e) => onSmtpPortChange(e.target.value)}
+                  placeholder="587"
+                  className={INPUT}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className={LABEL}>SSL</label>
+                <div className="flex items-center h-[42px]">
+                  <input
+                    type="checkbox"
+                    id="smtp-secure"
+                    checked={smtpSecure}
+                    onChange={(e) => onSmtpSecureChange(e.target.checked)}
+                    className="h-4 w-4 rounded border-[#E5E7EB] text-[#111827] cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-200/60 bg-red-50/60 px-4 py-3 text-[13px] text-red-600">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <div className="pt-1">
+          <button
+            type="submit"
+            disabled={isConnecting || !email.trim() || !password.trim()}
+            className={PRIMARY_BTN}
+          >
+            {isConnecting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {isConnecting ? "Se conectează…" : "Conectează Email"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 // ── Brand icons ───────────────────────────────────────────────────────────────
 
 function TelegramIcon() {
@@ -828,6 +1185,22 @@ function TeamsIcon() {
       aria-hidden="true"
     >
       <path d="M20.625 7.875a2.625 2.625 0 1 0 0-5.25 2.625 2.625 0 0 0 0 5.25zM14.25 8.625a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm5.16 1.313a4.5 4.5 0 0 1 .84 2.594V17.25a.75.75 0 0 1-.75.75H17.25a.75.75 0 0 1-.75-.75v-4.313c0-1.173-.418-2.25-1.109-3.079A4.494 4.494 0 0 1 18.75 9a4.466 4.466 0 0 1 .66.938zM9 9.375a4.875 4.875 0 0 1 4.875 4.875v4.5a.75.75 0 0 1-.75.75h-8.25a.75.75 0 0 1-.75-.75v-4.5A4.875 4.875 0 0 1 9 9.375z" />
+    </svg>
+  );
+}
+
+function EmailIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M1.5 8.067v7.433A3 3 0 0 0 4.5 18.5h15a3 3 0 0 0 3-3V8.067l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.067z" />
+      <path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908z" />
     </svg>
   );
 }

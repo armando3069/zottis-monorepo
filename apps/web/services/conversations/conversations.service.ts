@@ -12,6 +12,12 @@ class ConversationsService {
 
   markAsRead = (id: number): Promise<void> =>
     request.patch<void>(ROUTES.conversations.markAsRead(id));
+
+  archive = (id: number): Promise<void> =>
+    request.patch<void>(ROUTES.conversations.archive(id));
+
+  unarchive = (id: number): Promise<void> =>
+    request.patch<void>(ROUTES.conversations.unarchive(id));
 }
 
 export const conversationsService = new ConversationsService();

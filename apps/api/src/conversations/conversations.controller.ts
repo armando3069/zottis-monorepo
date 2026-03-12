@@ -41,6 +41,24 @@ export class ConversationsController {
     return this.conversationsService.markAsRead(id, req.user.id);
   }
 
+  @Patch(':id/archive')
+  @HttpCode(HttpStatus.OK)
+  archive(
+    @Request() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.conversationsService.archiveConversation(id, req.user.id);
+  }
+
+  @Patch(':id/unarchive')
+  @HttpCode(HttpStatus.OK)
+  unarchive(
+    @Request() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.conversationsService.unarchiveConversation(id, req.user.id);
+  }
+
   @Patch(':id/contact-info')
   @HttpCode(HttpStatus.OK)
   updateContactInfo(

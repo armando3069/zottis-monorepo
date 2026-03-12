@@ -26,6 +26,21 @@ class PlatformsService {
 
   connectWhatsapp = (accessToken: string, phoneNumberId: string): Promise<void> =>
     request.post<void>(ROUTES.platforms.whatsappConnect, { accessToken, phoneNumberId });
+
+  connectEmail = (payload: {
+    email: string;
+    password: string;
+    provider: "gmail" | "outlook" | "custom";
+    imapOverride?: { host: string; port: number; secure: boolean };
+    smtpOverride?: { host: string; port: number; secure: boolean };
+  }): Promise<void> =>
+    request.post<void>(ROUTES.platforms.emailConnect, payload);
+
+  disconnectEmail = (email: string): Promise<void> =>
+    request.delete<void>(ROUTES.platforms.emailDisconnect(email));
+
+  testEmail = (email: string): Promise<{ imap: boolean; smtp: boolean }> =>
+    request.get<{ imap: boolean; smtp: boolean }>(ROUTES.platforms.emailTest(email));
 }
 
 export const platformsService = new PlatformsService();

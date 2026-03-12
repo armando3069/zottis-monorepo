@@ -17,6 +17,7 @@ interface ChatAreaProps {
   onToggleSuggestions: () => void;
   onCloseSuggestions: () => void;
   onUpdateConversation: (id: number, patch: ContactInfoPatch) => Promise<void>;
+  onArchive: (id: number) => void;
   onSend: () => void;
 }
 
@@ -32,6 +33,7 @@ export function ChatArea({
   onToggleSuggestions,
   onCloseSuggestions,
   onUpdateConversation,
+  onArchive,
   onSend,
 }: ChatAreaProps) {
   if (!conversation) {
@@ -44,7 +46,7 @@ export function ChatArea({
 
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-page)] rounded-r-xl">
-      <ChatHeader conversation={conversation} onUpdateConversation={onUpdateConversation} />
+      <ChatHeader conversation={conversation} onUpdateConversation={onUpdateConversation} onArchive={onArchive} />
       <MessagesList
         messages={messages}
         isLoading={isLoadingMessages}

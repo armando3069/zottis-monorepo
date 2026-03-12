@@ -8,10 +8,14 @@ class MessagesService {
     text: string,
     platform: string = "telegram",
   ): Promise<void> => {
-    const url =
-      platform === "whatsapp"
-        ? ROUTES.messages.whatsappReply
-        : ROUTES.messages.telegramReply;
+    let url: string;
+    if (platform === "whatsapp") {
+      url = ROUTES.messages.whatsappReply;
+    } else if (platform === "email") {
+      url = ROUTES.messages.emailReply;
+    } else {
+      url = ROUTES.messages.telegramReply;
+    }
     return request.post<void>(url, { conversationId, text } satisfies SendReplyPayload);
   };
 }

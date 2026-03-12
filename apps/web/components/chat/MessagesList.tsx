@@ -1,6 +1,9 @@
+"use client";
+
 import { useMemo } from "react";
 import type { Message } from "@/lib/types";
 import { MessageBubble } from "./MessageBubble";
+import { EmailMessageCard } from "@/components/email/EmailMessageCard";
 
 interface MessagesListProps {
   messages: Message[];
@@ -42,26 +45,62 @@ export function MessagesList({ messages, isLoading, avatar }: MessagesListProps)
     });
   }, [messages]);
 
+  // True when the thread is made up entirely of email messages
+  const isEmailThread =
+    messages.length > 0 && messages.every((m) => m.platform === "email");
+
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-6 bg-[var(--bg-page)]">
-      <div className="max-w-3xl mx-auto">
+    <div
+      className={[
+        "flex-1 overflow-y-auto bg-[var(--bg-page)]",
+        // Email threads get slightly tighter horizontal padding so the cards
+        // feel document-like rather than chat-like
+        isEmailThread ? "px-5 py-6" : "px-6 py-6",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "max-w-3xl mx-auto",
+          // Email threads use a vertical stack layout (space-y) instead of
+          // the implicit margin approach used by MessageBubble
+          isEmailThread ? "space-y-5" : "",
+        ].join(" ")}
+      >
         {isLoading && (
-          <div className="text-[12px] text-[var(--text-tertiary)] text-center py-8">Se încarcă mesajele...</div>
+          <div className="text-[12px] text-[var(--text-tertiary)] text-center py-8">
+            Se încarcă mesajele...
+          </div>
         )}
 
         {!isLoading && messages.length === 0 && (
-          <div className="text-[12px] text-[var(--text-tertiary)] text-center py-8">Nu există mesaje încă.</div>
+          <div className="text-[12px] text-[var(--text-tertiary)] text-center py-8">
+            Nu există mesaje încă.
+          </div>
         )}
 
-        {messages.map((msg, i) => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            avatar={avatar}
-            isFirstInGroup={groupInfo[i].isFirstInGroup}
-            isLastInGroup={groupInfo[i].isLastInGroup}
-          />
-        ))}
+        {messages.map((msg, i) => {
+          // ── Email platform → dedicated email card renderer ─────────────
+          if (msg.platform === "email") {
+            return (
+              <EmailMessageCard
+                key={msg.id}
+                message={msg}
+                index={i}
+              />
+            );
+          }
+
+          // ── All other platforms → standard chat bubble ─────────────────
+          return (
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              avatar={avatar}
+              isFirstInGroup={groupInfo[i].isFirstInGroup}
+              isLastInGroup={groupInfo[i].isLastInGroup}
+            />
+          );
+        })}
       </div>
     </div>
   );

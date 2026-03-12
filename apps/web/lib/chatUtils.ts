@@ -30,6 +30,7 @@ export function mapConversationToViewModel(raw: any): ConversationViewModel {
     contactPhone:    raw.contact_phone    ?? null,
     contactCountry:  raw.contact_country  ?? null,
     contactLanguage: raw.contact_language ?? null,
+    isArchived:      raw.is_archived      ?? false,
   };
 }
 
@@ -66,11 +67,15 @@ export function buildChannels(conversations: { platform: string }[]): Channel[] 
     return acc;
   }, {});
 
+  const chatCount =
+    (countByPlatform["telegram"] ?? 0) +
+    (countByPlatform["whatsapp"] ?? 0) +
+    (countByPlatform["teams"]    ?? 0);
+
   return [
-    { id: "all",      name: "Toate Mesajele", count: conversations.length },
-    { id: "telegram", name: "Telegram",        count: countByPlatform["telegram"] ?? 0 },
-    { id: "whatsapp", name: "WhatsApp",        count: countByPlatform["whatsapp"] ?? 0 },
-    { id: "teams",    name: "Teams",           count: countByPlatform["teams"]    ?? 0 },
+    { id: "all",      name: "All",      count: conversations.length },
+    { id: "chats",    name: "Chats",    count: chatCount },
+    { id: "email",    name: "Email",    count: countByPlatform["email"] ?? 0 },
   ];
 }
 

@@ -11,9 +11,10 @@ import { EditContactModal } from "./EditContactModal";
 interface ChatHeaderProps {
   conversation: ConversationViewModel;
   onUpdateConversation: (id: number, patch: ContactInfoPatch) => Promise<void>;
+  onArchive: (id: number) => void;
 }
 
-export function ChatHeader({ conversation, onUpdateConversation }: ChatHeaderProps) {
+export function ChatHeader({ conversation, onUpdateConversation, onArchive }: ChatHeaderProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const handleLifecycleChange = (value: string) => {
@@ -59,7 +60,11 @@ export function ChatHeader({ conversation, onUpdateConversation }: ChatHeaderPro
             <button className="p-2 rounded-lg hover:bg-[var(--bg-surface-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all duration-120 ease-out">
               <Star className="w-4 h-4" />
             </button>
-            <button className="p-2 rounded-lg hover:bg-[var(--bg-surface-hover)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all duration-120 ease-out">
+            <button
+              onClick={() => onArchive(conversation.id)}
+              title="Archive conversation"
+              className="p-2 rounded-lg hover:bg-amber-50 text-[var(--text-tertiary)] hover:text-amber-600 transition-all duration-120 ease-out"
+            >
               <Archive className="w-4 h-4" />
             </button>
           </div>

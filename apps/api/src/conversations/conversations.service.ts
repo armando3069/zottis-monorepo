@@ -58,6 +58,22 @@ export class ConversationsService {
     return conversation;
   }
 
+  async archiveConversation(id: number, userId: number) {
+    await this.getConversationForUser(id, userId);
+    return this.prisma.conversations.update({
+      where: { id },
+      data: { is_archived: true },
+    });
+  }
+
+  async unarchiveConversation(id: number, userId: number) {
+    await this.getConversationForUser(id, userId);
+    return this.prisma.conversations.update({
+      where: { id },
+      data: { is_archived: false },
+    });
+  }
+
   async updateContactInfo(
     id: number,
     userId: number,
