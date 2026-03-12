@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { aiAssistantService } from "@/services/ai-assistant/ai-assistant.service";
 import type { ResponseTone } from "@/services/ai-assistant/ai-assistant.types";
-import type { UseAiConfigReturn } from "@/hooks/useAiConfig";
+import type { UseAiConfigReturn } from "@/app/(features)/ai-assistant/hooks/useAiConfig";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

@@ -233,21 +233,23 @@ export function AppSidebar() {
 
   return (
     <Tooltip.Provider>
+
+      {/* Add Border right for vizual border-r border-[var(--border-default)] */}
       <div
         className={`
-          flex flex-col bg-[var(--sidebar-bg)] border-r border-[var(--border-default)] transition-[width] duration-200 ease-in-out
+          flex flex-col bg-[var(--sidebar-bg)]  transition-[width] duration-200 ease-in-out
           ${expanded ? "w-[232px]" : "w-[56px]"}
         `}
       >
         {/* ── Logo + Toggle ──────────────────────────────────────────── */}
         <div className={`flex items-center ${expanded ? "justify-between px-4" : "justify-center"} h-14`}>
           {expanded ? (
-            <Link href="/" className="flex items-center gap-2.5">
+            <Link href="/inbox" className="flex items-center gap-2.5">
               <Image src="/logo.png" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg" />
               <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-tight">AI Inbox</span>
             </Link>
           ) : (
-            <Link href="/" className="flex items-center justify-center">
+            <Link href="/inbox" className="flex items-center justify-center">
               <Image src="/logo.png" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg" />
             </Link>
           )}
@@ -284,7 +286,7 @@ export function AppSidebar() {
                   <div key="inbox">
                     <button
                       onClick={() => {
-                        if (!onInbox) router.push("/");
+                        if (!onInbox) router.push("/inbox");
                         setInboxOpen((o) => !o);
                       }}
                       className={`
@@ -311,7 +313,7 @@ export function AppSidebar() {
                           return (
                             <Link
                               key={cat.id}
-                              href={`/?inboxCategory=${cat.id}`}
+                              href={`/inbox?category=${cat.id}`}
                               className={`
                                 flex items-center gap-2 pl-[30px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
                                 ${isActiveCat

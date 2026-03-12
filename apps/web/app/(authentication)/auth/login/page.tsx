@@ -19,7 +19,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login({ email, password });
-      router.replace("/");
+      router.replace("/inbox");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -106,7 +106,7 @@ export default function LoginPage() {
         {/* Signup link */}
         <p className="text-center text-sm text-slate-500">
           Don&apos;t have an account?{" "}
-          <a href="/apps/web/app/auth/signup" className="font-medium text-blue-600 hover:underline">
+          <a href="/apps/web/app/(authentication)/authhentication)/auth/signup" className="font-medium text-blue-600 hover:underline">
             Sign up
           </a>
         </p>

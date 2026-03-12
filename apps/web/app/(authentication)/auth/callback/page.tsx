@@ -29,11 +29,11 @@ function CallbackHandler() {
     loginWithToken(token)
       .then(() => getPlatformAccounts(getToken()!))
       .then(({ total }) => {
-        router.replace(total === 0 ? "/connect-platforms" : "/");
+        router.replace(total === 0 ? "/connect-platforms" : "/inbox");
       })
       .catch((err) => {
         console.error("[auth/callback] Failed:", err);
-        router.replace("/");
+        router.replace("/inbox");
       });
   }, [router, searchParams, loginWithToken]);
 

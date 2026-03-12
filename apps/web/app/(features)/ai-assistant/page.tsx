@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { Settings2, BookOpen } from "lucide-react";
-import { useAiConfig } from "@/hooks/useAiConfig";
-import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
-import ConfigurationTab from "@/components/ai-assistant/ConfigurationTab";
-import KnowledgeBaseTab from "@/components/ai-assistant/KnowledgeBaseTab";
+import { useAiConfig } from "@/app/(features)/ai-assistant/hooks/useAiConfig";
+import { useKnowledgeBase } from "@/app/(features)/ai-assistant/hooks/useKnowledgeBase";
+import ConfigurationTab from "@/app/(features)/ai-assistant/components/ConfigurationTab";
+import KnowledgeBaseTab from "@/app/(features)/ai-assistant/components/KnowledgeBaseTab";
 
 export default function AiAssistantPage() {
   const [activeTab, setActiveTab] = useState<"configuration" | "knowledge">("configuration");

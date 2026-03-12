@@ -10,7 +10,7 @@ import {
   MessageSquare,
   X,
 } from "lucide-react";
-import type { UseKnowledgeBaseReturn } from "@/hooks/useKnowledgeBase";
+import type { UseKnowledgeBaseReturn } from "@/app/(features)/ai-assistant/hooks/useKnowledgeBase";
 
 // ── Shared styles (must mirror ConfigurationTab tokens) ──────────────────────
 

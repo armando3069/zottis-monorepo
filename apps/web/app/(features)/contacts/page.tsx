@@ -21,7 +21,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { contactsQueryKeys } from "@/services/contacts/contacts.service";
 import type { ContactRow } from "@/services/contacts/contacts.types";
 import { getLifecycleStage } from "@/lib/lifecycle";
-import { AvatarWithPlatformBadge } from "@/components/chat/AvatarWithPlatformBadge";
+import { AvatarWithPlatformBadge } from "@/app/(features)/inbox/components/chat/AvatarWithPlatformBadge";
 import { cn } from "@/lib/cn";
 import { exportContactsToXlsx } from "@/lib/exportContacts";
 

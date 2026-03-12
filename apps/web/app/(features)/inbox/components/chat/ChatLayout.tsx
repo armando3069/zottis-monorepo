@@ -26,7 +26,7 @@ export function ChatLayout() {
   const searchParams = useSearchParams();
 
   // Category comes from the sidebar URL param: all | chats | emails
-  const inboxCategory = searchParams.get("inboxCategory") ?? "all";
+  const inboxCategory = searchParams.get("category") ?? "all";
 
   const [conversationFilter, setConversationFilter] = useState<"all" | "unread" | "archived">("all");
   const [selectedConversation, setSelectedConversation] = useState<ConversationViewModel | null>(null);

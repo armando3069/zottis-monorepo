@@ -3,7 +3,7 @@ import type { ConversationViewModel } from "@/lib/types";
 import { getSentimentColor, getSentimentLabel } from "@/lib/chatUtils";
 import { getLifecycleStage } from "@/lib/lifecycle";
 import { AvatarWithPlatformBadge } from "./AvatarWithPlatformBadge";
-import { cleanEmailPlainText } from "@/components/email/EmailPlainTextView";
+import { cleanEmailPlainText } from "@/app/(features)/inbox/components/email/EmailPlainTextView";
 
 // ── Email preview cleaning ────────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { Message } from "@/lib/types";
 import { MessageBubble } from "./MessageBubble";
-import { EmailMessageCard } from "@/components/email/EmailMessageCard";
+import { EmailMessageCard } from "@/app/(features)/inbox/components/email/EmailMessageCard";
 
 interface MessagesListProps {
   messages: Message[];
