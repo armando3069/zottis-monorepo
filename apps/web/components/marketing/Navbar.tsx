@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import Image from 'next/image'
+
 
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
@@ -18,11 +20,12 @@ export function Navbar() {
       <nav className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gray-900">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </div>
+            <Image
+                src="/logo.svg"
+                width={29}
+                height={28}
+                alt="Picture of the author"
+            />
           <span className="text-[15px] font-semibold tracking-tight text-gray-900">
             AI Inbox
           </span>
