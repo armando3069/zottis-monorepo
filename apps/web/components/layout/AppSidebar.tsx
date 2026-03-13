@@ -245,13 +245,21 @@ export function AppSidebar() {
         <div className={`flex items-center ${expanded ? "justify-between px-4" : "justify-center"} h-14`}>
           {expanded ? (
             <Link href="/inbox" className="flex items-center gap-2.5">
-              <Image src="/logo.png" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg" />
+              <Image src="/logo.svg" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg" />
               <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-tight">AI Inbox</span>
             </Link>
           ) : (
-            <Link href="/inbox" className="flex items-center justify-center">
-              <Image src="/logo.png" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg" />
-            </Link>
+            <div className="flex items-center justify-center w-7 h-7  relative group">
+              <button
+                  onClick={toggle}
+                  className="w-full p-1.5"
+              >
+                <Image src="/logo.svg" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg absolute inset-0 transition-opacity duration-200 group-hover:opacity-0" />
+                <PanelLeftOpen className="w-5 h-5 ml-1 mt-1 absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+
+              </button>
+            </div>
+
           )}
           {expanded && (
             <button
@@ -259,21 +267,10 @@ export function AppSidebar() {
               className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:bg-[var(--sidebar-item-hover)] hover:text-[var(--text-secondary)] transition-colors duration-120"
             >
               <PanelLeftClose className="w-4 h-4" />
+
             </button>
           )}
         </div>
-
-        {/* ── Collapsed toggle ────────────────────────────────────────── */}
-        {!expanded && (
-          <div className="flex justify-center pb-1">
-            <button
-              onClick={toggle}
-              className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:bg-[var(--sidebar-item-hover)] hover:text-[var(--text-secondary)] transition-colors duration-120"
-            >
-              <PanelLeftOpen className="w-4 h-4" />
-            </button>
-          </div>
-        )}
 
         {/* ── Primary Nav ─────────────────────────────────────────────── */}
         <div className={`flex-1 overflow-y-auto ${expanded ? "px-3" : "px-2"} pt-1 pb-3`}>
@@ -305,9 +302,9 @@ export function AppSidebar() {
                         }`}
                       />
                     </button>
-
+                    {/*mt-1 ml-4 pl-3  space-y-1*/}
                     {inboxOpen && (
-                      <div className="mt-0.5 space-y-px ml-1">
+                      <div className="mt-0.5 space-y-px border-l border-[var(--border-default)] ml-5">
                         {INBOX_CATEGORIES.map((cat) => {
                           const isActiveCat = onInbox && currentInboxCat === cat.id;
                           return (
@@ -315,7 +312,7 @@ export function AppSidebar() {
                               key={cat.id}
                               href={`/inbox?category=${cat.id}`}
                               className={`
-                                flex items-center gap-2 pl-[30px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
+                                flex items-center gap-2 pl-[20px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
                                 ${isActiveCat
                                   ? "bg-[var(--sidebar-sub-active)] text-[var(--text-primary)] font-medium"
                                   : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-sub-hover)] hover:text-[var(--text-primary)]"
@@ -359,7 +356,7 @@ export function AppSidebar() {
                     </button>
 
                     {contactsOpen && (
-                      <div className="mt-0.5 space-y-px ml-1">
+                      <div className="mt-1 ml-5 pl-3 border-l border-[var(--border-default)] space-y-1">
                         {CONTACT_CATEGORIES.map((cat) => {
                           const count       = getCatCount(contacts, cat);
                           const isActiveCat = onContacts && currentCategory === cat.id;
@@ -368,7 +365,7 @@ export function AppSidebar() {
                               key={cat.id}
                               href={`/contacts?category=${cat.id}`}
                               className={`
-                                flex items-center justify-between gap-2 pl-[30px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
+                                flex items-center justify-between gap-2 pl-[20px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
                                 ${isActiveCat
                                   ? "bg-[var(--sidebar-sub-active)] text-[var(--text-primary)] font-medium"
                                   : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-sub-hover)] hover:text-[var(--text-primary)]"
