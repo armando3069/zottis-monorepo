@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zottis",
-  description: "Agregator pp messanger",
+  title: "AI Inbox",
+  description: "Agregator messanger",
 };
 
 // Anti-flash script: runs before hydration to apply the correct theme
@@ -42,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/logo.svg" sizes="any" />
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: required for no-flash theme init */}
         <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />
       </head>
