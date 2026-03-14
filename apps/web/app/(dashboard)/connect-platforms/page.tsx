@@ -183,7 +183,7 @@ function ConnectPlatformsContent() {
         setConnectedIds(ids);
 
         if (!isManaging && total > 0) {
-          router.replace("/");
+          router.replace("/inbox");
         } else {
           setIsCheckingPlatforms(false);
         }
@@ -238,7 +238,7 @@ function ConnectPlatformsContent() {
       setToast("WhatsApp conectat cu succes.");
       setConnectedIds((prev) => new Set(prev).add("whatsapp"));
       setSelectedId(null);
-      if (!isManaging) setTimeout(() => router.replace("/"), 1500);
+      if (!isManaging) setTimeout(() => router.replace("/inbox"), 1500);
       else setTimeout(() => setToast(null), 2000);
     } catch (err) {
       setConnectError(err instanceof Error ? err.message : "A apărut o eroare.");
@@ -258,7 +258,7 @@ function ConnectPlatformsContent() {
       setToast("Telegram conectat cu succes.");
       setConnectedIds((prev) => new Set(prev).add("telegram"));
       setSelectedId(null);
-      if (!isManaging) setTimeout(() => router.replace("/"), 1500);
+      if (!isManaging) setTimeout(() => router.replace("/inbox"), 1500);
       else setTimeout(() => setToast(null), 2000);
     } catch (err) {
       setConnectError(err instanceof Error ? err.message : "A apărut o eroare.");
@@ -301,7 +301,7 @@ function ConnectPlatformsContent() {
       setToast("Email conectat cu succes.");
       setConnectedIds((prev) => new Set(prev).add("email"));
       setSelectedId(null);
-      if (!isManaging) setTimeout(() => router.replace("/"), 1500);
+      if (!isManaging) setTimeout(() => router.replace("/inbox"), 1500);
       else setTimeout(() => setToast(null), 2000);
     } catch (err) {
       setConnectError(err instanceof Error ? err.message : "A apărut o eroare.");

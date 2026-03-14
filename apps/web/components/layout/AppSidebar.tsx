@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronDown,
+  ChevronUp,
   MessageSquare,
   Mail,
   Sun,
@@ -23,6 +24,7 @@ import {
   Monitor,
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
@@ -41,7 +43,7 @@ interface NavItem {
 }
 
 const PRIMARY_NAV: NavItem[] = [
-  { id: "inbox",    label: "Inbox",        href: "/",             icon: Inbox },
+  { id: "inbox",    label: "Inbox",        href: "/inbox",        icon: Inbox },
   { id: "contacts", label: "Contacts",     href: "/contacts",     icon: Users },
   { id: "ai",       label: "AI Assistant", href: "/ai-assistant", icon: Bot },
 ];
@@ -128,60 +130,180 @@ function NavItemButton({
   return content;
 }
 
-// ── ThemeSwitcher ─────────────────────────────────────────────────────────────
+// ── UserMenuDropdown ──────────────────────────────────────────────────────────
 
-function ThemeSwitcher({ expanded }: { expanded: boolean }) {
+const THEME_OPTIONS: { value: Theme; icon: typeof Sun; label: string }[] = [
+  { value: "light",  icon: Sun,     label: "Light" },
+  { value: "dark",   icon: Moon,    label: "Dark" },
+  { value: "system", icon: Monitor, label: "System" },
+];
+
+function UserMenuDropdown({
+  expanded,
+  user,
+  initials,
+  handleLogout,
+}: {
+  expanded: boolean;
+  user: { name?: string; email?: string; avatar?: string } | null;
+  initials: string;
+  handleLogout: () => void;
+}) {
   const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
 
-  const options: { value: Theme; icon: typeof Sun; label: string }[] = [
-    { value: "light",  icon: Sun,     label: "Light" },
-    { value: "dark",   icon: Moon,    label: "Dark" },
-    { value: "system", icon: Monitor, label: "System" },
-  ];
+  const avatar = user?.avatar ? (
+    <Image
+      src={user.avatar}
+      width={32}
+      height={32}
+      alt={user?.name ?? ""}
+      className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-1 ring-black/[0.06]"
+    />
+  ) : (
+    <div className="w-8 h-8 rounded-full bg-[var(--text-primary)] flex items-center justify-center flex-shrink-0">
+      <span className="text-[10px] font-semibold text-[var(--bg-surface)]">{initials}</span>
+    </div>
+  );
 
-  if (!expanded) {
-    const active = options.find((o) => o.value === theme) ?? options[2];
-    const Icon = active.icon;
+  /* ── shared dropdown content ── */
+  const dropdownContent = (
+    <DropdownMenu.Content
+      side={expanded ? "top" : "right"}
+      align={expanded ? "start" : "end"}
+      sideOffset={8}
+      className={`
+        z-50 min-w-[240px] rounded-xl border border-[var(--border-default)]
+        bg-[var(--bg-surface)] shadow-[var(--shadow-dropdown)]
+        animate-in fade-in-0 zoom-in-95 origin-bottom-left
+      `}
+      onCloseAutoFocus={(e) => e.preventDefault()}
+    >
+      {/* User info header */}
+      <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-[var(--border-default)]">
+        {user?.avatar ? (
+          <Image
+            src={user.avatar}
+            width={36}
+            height={36}
+            alt={user?.name ?? ""}
+            className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-1 ring-black/[0.06]"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-[var(--text-primary)] flex items-center justify-center flex-shrink-0">
+            <span className="text-[11px] font-semibold text-[var(--bg-surface)]">{initials}</span>
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate leading-tight">
+            {user?.name ?? "—"}
+          </p>
+          <p className="text-[11px] text-[var(--text-tertiary)] truncate leading-tight mt-0.5">
+            {user?.email ?? ""}
+          </p>
+        </div>
+      </div>
+
+      {/* Appearance section */}
+      <div className="px-3 py-2.5 border-b border-[var(--border-default)]">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)] mb-2">
+          Appearance
+        </p>
+        <div className="flex items-center gap-1 rounded-lg bg-[var(--under-bg)] p-0.5">
+          {THEME_OPTIONS.map(({ value, icon: Icon, label }) => (
+            <button
+              key={value}
+              onClick={() => setTheme(value)}
+              title={label}
+              className={`
+                flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[12px] font-medium
+                transition-all duration-120 ease-out
+                ${theme === value
+                  ? "bg-[var(--bg-surface)] shadow-[var(--shadow-xs)] text-[var(--text-primary)]"
+                  : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                }
+              `}
+            >
+              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Log out */}
+      <div className="px-2 py-1.5">
+        <DropdownMenu.Item
+          onSelect={handleLogout}
+          className="
+            flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer
+            text-[13px] text-red-500 dark:text-red-400 font-medium
+            hover:bg-red-50 dark:hover:bg-red-950/40
+            focus:bg-red-50 dark:focus:bg-red-950/40
+            outline-none transition-colors duration-120
+          "
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          Log out
+        </DropdownMenu.Item>
+      </div>
+    </DropdownMenu.Content>
+  );
+
+  /* ── expanded sidebar trigger ── */
+  if (expanded) {
     return (
-      <Tooltip.Root delayDuration={0}>
-        <Tooltip.Trigger asChild>
+      <DropdownMenu.Root open={open} onOpenChange={setOpen}>
+        <DropdownMenu.Trigger asChild>
           <button
-            onClick={() => {
-              const idx = options.findIndex((o) => o.value === theme);
-              setTheme(options[(idx + 1) % options.length].value);
-            }}
-            className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:bg-[var(--sidebar-item-hover)] hover:text-[var(--text-secondary)] transition-colors duration-120"
+            className={`
+              w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg
+              text-left transition-colors duration-120 outline-none
+              hover:bg-[var(--sidebar-item-hover)]
+              ${open ? "bg-[var(--sidebar-item-hover)]" : ""}
+            `}
           >
-            <Icon className="w-3.5 h-3.5" />
+            {avatar}
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-[var(--text-primary)] truncate leading-tight">
+                {user?.name ?? "—"}
+              </p>
+              <p className="text-[11px] text-[var(--text-tertiary)] truncate leading-tight mt-0.5">
+                {user?.email ?? ""}
+              </p>
+            </div>
+            {/*{open*/}
+            {/*  ? <ChevronUp className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />*/}
+            {/*  : <ChevronDown className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />*/}
+            {/*}*/}
           </button>
-        </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content side="right" sideOffset={12} className="z-50 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--bg-surface)] shadow-[var(--shadow-dropdown)]">
-            {active.label} theme
-            <Tooltip.Arrow className="fill-[var(--text-primary)]" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
-      </Tooltip.Root>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          {dropdownContent}
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
     );
   }
 
+  /* ── collapsed sidebar trigger ── */
   return (
-    <div className="flex items-center gap-1 rounded-lg bg-[var(--under-bg)] p-0.5">
-      {options.map(({ value, icon: Icon, label }) => (
+    <DropdownMenu.Root open={open} onOpenChange={setOpen}>
+      <DropdownMenu.Trigger asChild>
         <button
-          key={value}
-          onClick={() => setTheme(value)}
-          title={label}
-          className={`flex-1 flex items-center justify-center py-1.5 rounded-md transition-all duration-120 ease-out ${
-            theme === value
-              ? "bg-[var(--bg-surface)] shadow-[var(--shadow-xs)] text-[var(--text-primary)]"
-              : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-          }`}
+          className={`
+            flex items-center justify-center rounded-lg outline-none
+            transition-colors duration-120
+            hover:bg-[var(--sidebar-item-hover)]
+            ${open ? "bg-[var(--sidebar-item-hover)]" : ""}
+          `}
         >
-          <Icon className="w-3.5 h-3.5" />
+          {avatar}
         </button>
-      ))}
-    </div>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        {dropdownContent}
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 
@@ -194,10 +316,10 @@ export function AppSidebar() {
   const { user, logout }     = useAuth();
   const { expanded, toggle } = useSidebar();
 
-  const onInbox         = pathname === "/";
+  const onInbox         = pathname === "/inbox" || pathname === "/";
   const onContacts      = pathname === "/contacts" || pathname.startsWith("/contacts/");
-  const currentInboxCat = searchParams.get("inboxCategory") ?? "all";
-  const currentCategory = searchParams.get("category") ?? "all";
+  const currentInboxCat = onInbox ? (searchParams.get("category") ?? "all") : "all";
+  const currentCategory = onContacts ? (searchParams.get("category") ?? "all") : "all";
 
   const [inboxOpen,    setInboxOpen]    = useState(onInbox);
   const [contactsOpen, setContactsOpen] = useState(onContacts);
@@ -223,7 +345,7 @@ export function AppSidebar() {
   };
 
   const isActive = (item: NavItem) => {
-    if (item.href === "/") return pathname === "/";
+    if (item.href === "/inbox") return pathname === "/inbox" || pathname === "/";
     return pathname.startsWith(item.href.split("?")[0]);
   };
 
@@ -245,35 +367,32 @@ export function AppSidebar() {
         <div className={`flex items-center ${expanded ? "justify-between px-4" : "justify-center"} h-14`}>
           {expanded ? (
             <Link href="/inbox" className="flex items-center gap-2.5">
-              <Image src="/logo.png" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg" />
+              <Image src="/logo.svg" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg" />
               <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-tight">AI Inbox</span>
             </Link>
           ) : (
-            <Link href="/inbox" className="flex items-center justify-center">
-              <Image src="/logo.png" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg" />
-            </Link>
+            <div className="flex items-center justify-center w-7 h-7  relative group">
+              <button
+                  onClick={toggle}
+                  className="w-full p-1.5"
+              >
+                <Image src="/logo.svg" width={100} height={100} alt="logo" className="w-7 h-7 rounded-lg absolute inset-0 transition-opacity duration-200 group-hover:opacity-0" />
+                <PanelLeftOpen className="w-5 h-5 ml-1 mt-1 absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 cursor-col-resize" />
+
+              </button>
+            </div>
+
           )}
           {expanded && (
             <button
               onClick={toggle}
               className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:bg-[var(--sidebar-item-hover)] hover:text-[var(--text-secondary)] transition-colors duration-120"
             >
-              <PanelLeftClose className="w-4 h-4" />
+              <PanelLeftClose className="w-4 h-4 cursor-col-resize" />
+
             </button>
           )}
         </div>
-
-        {/* ── Collapsed toggle ────────────────────────────────────────── */}
-        {!expanded && (
-          <div className="flex justify-center pb-1">
-            <button
-              onClick={toggle}
-              className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:bg-[var(--sidebar-item-hover)] hover:text-[var(--text-secondary)] transition-colors duration-120"
-            >
-              <PanelLeftOpen className="w-4 h-4" />
-            </button>
-          </div>
-        )}
 
         {/* ── Primary Nav ─────────────────────────────────────────────── */}
         <div className={`flex-1 overflow-y-auto ${expanded ? "px-3" : "px-2"} pt-1 pb-3`}>
@@ -305,9 +424,9 @@ export function AppSidebar() {
                         }`}
                       />
                     </button>
-
+                    {/*mt-1 ml-4 pl-3  space-y-1*/}
                     {inboxOpen && (
-                      <div className="mt-0.5 space-y-px ml-1">
+                      <div className="mt-1 ml-5 pl-3 border-l border-[var(--border-default)] space-y-1">
                         {INBOX_CATEGORIES.map((cat) => {
                           const isActiveCat = onInbox && currentInboxCat === cat.id;
                           return (
@@ -315,7 +434,7 @@ export function AppSidebar() {
                               key={cat.id}
                               href={`/inbox?category=${cat.id}`}
                               className={`
-                                flex items-center gap-2 pl-[30px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
+                                flex items-center justify-between gap-2 pl-[20px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
                                 ${isActiveCat
                                   ? "bg-[var(--sidebar-sub-active)] text-[var(--text-primary)] font-medium"
                                   : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-sub-hover)] hover:text-[var(--text-primary)]"
@@ -359,7 +478,7 @@ export function AppSidebar() {
                     </button>
 
                     {contactsOpen && (
-                      <div className="mt-0.5 space-y-px ml-1">
+                      <div className="mt-1 ml-5 pl-3 border-l border-[var(--border-default)] space-y-1">
                         {CONTACT_CATEGORIES.map((cat) => {
                           const count       = getCatCount(contacts, cat);
                           const isActiveCat = onContacts && currentCategory === cat.id;
@@ -368,9 +487,9 @@ export function AppSidebar() {
                               key={cat.id}
                               href={`/contacts?category=${cat.id}`}
                               className={`
-                                flex items-center justify-between gap-2 pl-[30px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
+                                flex items-center justify-between gap-2 pl-[20px] pr-3 py-[6px] rounded-md text-[13px] transition-all duration-120 ease-out
                                 ${isActiveCat
-                                  ? "bg-[var(--sidebar-sub-active)] text-[var(--text-primary)] font-medium"
+                                  ? "bg-[var(--sidebar-sub-active)] text-[var(--text-primary)] font-medium "
                                   : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-sub-hover)] hover:text-[var(--text-primary)]"
                                 }
                               `}
@@ -490,69 +609,14 @@ export function AppSidebar() {
           </div>
         </div>
 
-        {/* ── Footer: theme switcher + user profile ─────────────────── */}
-        <div className={`border-t border-[var(--border-default)] ${expanded ? "px-3 py-3" : "px-2 py-3"}`}>
-          {/* Theme switcher */}
-          <div className={`mb-2 ${expanded ? "" : "flex justify-center"}`}>
-            <ThemeSwitcher expanded={expanded} />
-          </div>
-
-          {expanded ? (
-            <div className="flex items-center gap-2.5 px-2 py-1">
-              {user?.avatar ? (
-                <Image src={user.avatar} width={32} height={32} alt={user?.name ?? ""} className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-1 ring-black/[0.06]" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-[var(--text-primary)] flex items-center justify-center flex-shrink-0">
-                  <span className="text-[10px] font-semibold text-[var(--bg-surface)]">{initials}</span>
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-[var(--text-primary)] truncate leading-tight">{user?.name ?? "—"}</p>
-                <p className="text-[11px] text-[var(--text-tertiary)] truncate leading-tight mt-0.5">{user?.email ?? ""}</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-colors duration-120"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <Tooltip.Root delayDuration={0}>
-                <Tooltip.Trigger asChild>
-                  <div>
-                    {user?.avatar ? (
-                      <Image src={user.avatar} width={32} height={32} alt={user?.name ?? ""} className="w-8 h-8 rounded-full object-cover ring-1 ring-black/[0.06]" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-[var(--text-primary)] flex items-center justify-center">
-                        <span className="text-[10px] font-semibold text-[var(--bg-surface)]">{initials}</span>
-                      </div>
-                    )}
-                  </div>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content side="right" sideOffset={12} className="z-50 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--bg-surface)] shadow-[var(--shadow-dropdown)]">
-                    {user?.name ?? "—"}
-                    <Tooltip.Arrow className="fill-[var(--text-primary)]" />
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-              <Tooltip.Root delayDuration={0}>
-                <Tooltip.Trigger asChild>
-                  <button onClick={handleLogout} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-colors duration-120">
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content side="right" sideOffset={12} className="z-50 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--bg-surface)] shadow-[var(--shadow-dropdown)]">
-                    Log out
-                    <Tooltip.Arrow className="fill-[var(--text-primary)]" />
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-            </div>
-          )}
+        {/* ── Footer: user menu dropdown ─────────────────────────────── */}
+        <div className={` ${expanded ? "px-3 py-2.5" : "px-2 py-2.5 flex justify-center"}`}>
+          <UserMenuDropdown
+            expanded={expanded}
+            user={user}
+            initials={initials}
+            handleLogout={handleLogout}
+          />
         </div>
       </div>
     </Tooltip.Provider>

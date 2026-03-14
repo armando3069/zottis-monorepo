@@ -15,10 +15,13 @@ import {
   Check,
   FileSpreadsheet,
   CheckCircle2,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import * as Checkbox from "@radix-ui/react-checkbox";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { contactsQueryKeys } from "@/services/contacts/contacts.service";
+import * as Dialog from "@radix-ui/react-dialog";
+import { contactsQueryKeys, contactsService } from "@/services/contacts/contacts.service";
 import type { ContactRow } from "@/services/contacts/contacts.types";
 import { getLifecycleStage } from "@/lib/lifecycle";
 import { AvatarWithPlatformBadge } from "@/app/(dashboard)/inbox/components/chat/AvatarWithPlatformBadge";
@@ -150,6 +153,8 @@ export default function ContactsPage() {
   const [selectedIds, setSelectedIds]           = useState<Set<number>>(new Set());
   const [sortDir, setSortDir]                   = useState<"asc" | "desc">("desc");
   const [exportToast, setExportToast]           = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting]             = useState(false);
 
   useEffect(() => {
     const id = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
@@ -225,9 +230,26 @@ export default function ContactsPage() {
     showExportToast(`Exported ${rows.length} selected contact${rows.length !== 1 ? "s" : ""} to Excel`);
   }
 
+  async function handleDeleteSelected() {
+    if (!selectedIds.size) return;
+    setIsDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      await contactsService.deleteContacts(ids);
+      setSelectedIds(new Set());
+      setDeleteConfirmOpen(false);
+      await refetch();
+      showExportToast(`Deleted ${ids.length} contact${ids.length !== 1 ? "s" : ""}`);
+    } catch {
+      // keep dialog open on error
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   const handleRowClick = (row: ContactRow) => {
     sessionStorage.setItem("pendingConvId", String(row.id));
-    router.push("/");
+    router.push("/inbox");
   };
 
   // ── Shared table cell classes ──────────────────────────────────────────────
@@ -237,13 +259,58 @@ export default function ContactsPage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden rounded-xl bg-[var(--bg-surface)] shadow-[var(--shadow-card)] border border-[var(--border-default)]">
 
-      {/* ── Export toast ──────────────────────────────────────────── */}
+      {/* ── Export / action toast ─────────────────────────────────── */}
       {exportToast && (
         <div className="fixed top-5 right-5 z-50 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-700 shadow-[var(--shadow-dropdown)] dark:border-emerald-900/50 dark:bg-emerald-950/50 dark:text-emerald-400">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           {exportToast}
         </div>
       )}
+
+      {/* ── Delete confirmation dialog ────────────────────────────── */}
+      <Dialog.Root open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] animate-in fade-in-0" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-full max-w-[400px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] shadow-[var(--shadow-dropdown)] p-6 animate-in fade-in-0 zoom-in-95">
+            {/* Icon + title */}
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/40">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <Dialog.Title className="text-[16px] font-semibold text-[var(--text-primary)] leading-tight">
+                Delete {selectedIds.size} contact{selectedIds.size !== 1 ? "s" : ""}?
+              </Dialog.Title>
+              <Dialog.Description className="text-[13px] text-[var(--text-tertiary)] leading-relaxed">
+                This will permanently delete the selected conversation{selectedIds.size !== 1 ? "s" : ""} and all associated messages. This action cannot be undone.
+              </Dialog.Description>
+            </div>
+
+            {/* Buttons */}
+            <div className="mt-6 flex gap-3">
+              <Dialog.Close asChild>
+                <button
+                  disabled={isDeleting}
+                  className="flex-1 h-10 rounded-[var(--radius-button)] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] transition-colors duration-120 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </Dialog.Close>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+                className="flex-1 h-10 rounded-[var(--radius-button)] bg-red-600 hover:bg-red-700 text-[13px] font-medium text-white transition-colors duration-120 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                {isDeleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-6 pt-5 pb-4">
@@ -319,6 +386,28 @@ export default function ContactsPage() {
                   <p className="px-3 py-1.5 pb-2 text-[12px] text-[var(--text-tertiary)]">
                     No contacts to export
                   </p>
+                )}
+
+                {/* Delete section — only when rows are checked */}
+                {selectedIds.size > 0 && (
+                  <>
+                    <DropdownMenu.Separator className="my-1 h-px bg-[var(--border-default)]" />
+                    <div className="px-3 pt-2 pb-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                        Danger
+                      </p>
+                    </div>
+                    <DropdownMenu.Item
+                      onSelect={() => setDeleteConfirmOpen(true)}
+                      className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer outline-none transition-colors duration-120"
+                    >
+                      <Trash2 className="h-4 w-4 shrink-0" />
+                      <span className="flex-1">Delete Selected</span>
+                      <span className="text-[11px] tabular-nums opacity-70">
+                        {selectedIds.size}
+                      </span>
+                    </DropdownMenu.Item>
+                  </>
                 )}
               </DropdownMenu.Content>
             </DropdownMenu.Portal>

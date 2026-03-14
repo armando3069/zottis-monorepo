@@ -90,4 +90,27 @@ export class ConversationsService {
 
     return this.prisma.conversations.update({ where: { id }, data });
   }
+
+  async deleteConversations(ids: number[], userId: number) {
+    // Verify all conversations belong to this user before deleting
+    const owned = await this.prisma.conversations.findMany({
+      where: {
+        id: { in: ids },
+        platform_account: { user_id: userId },
+      },
+      select: { id: true },
+    });
+
+    const ownedIds = owned.map((c) => c.id);
+
+    await this.prisma.messages.deleteMany({
+      where: { conversation_id: { in: ownedIds } },
+    });
+
+    const result = await this.prisma.conversations.deleteMany({
+      where: { id: { in: ownedIds } },
+    });
+
+    return { deleted: result.count };
+  }
 }

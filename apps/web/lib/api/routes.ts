@@ -10,6 +10,7 @@ export const ROUTES = {
     markAsRead: (id: number) => `/conversations/${id}/read`,
     archive: (id: number) => `/conversations/${id}/archive`,
     unarchive: (id: number) => `/conversations/${id}/unarchive`,
+    deleteBulk: "/conversations/bulk",
   },
   aiAssistant: {
     config: "/ai-assistant/config",

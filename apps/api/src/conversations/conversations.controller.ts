@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -67,5 +68,14 @@ export class ConversationsController {
     @Body() dto: UpdateContactInfoDto,
   ) {
     return this.conversationsService.updateContactInfo(id, req.user.id, dto);
+  }
+
+  @Delete('bulk')
+  @HttpCode(HttpStatus.OK)
+  deleteConversations(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { ids: number[] },
+  ) {
+    return this.conversationsService.deleteConversations(body.ids, req.user.id);
   }
 }

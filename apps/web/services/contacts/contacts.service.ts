@@ -12,6 +12,11 @@ class ContactsService {
     const qs = params.toString() ? `?${params.toString()}` : "";
     return request.get<ContactRow[]>(`${ROUTES.conversations.contacts}${qs}`);
   };
+
+  deleteContacts = (ids: number[]): Promise<{ deleted: number }> =>
+    request.delete<{ deleted: number }>(ROUTES.conversations.deleteBulk, {
+      data: { ids },
+    });
 }
 
 export const contactsService = new ContactsService();
