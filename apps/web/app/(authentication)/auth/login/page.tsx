@@ -2,15 +2,19 @@
 
 import { type FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { AuthRightPanel } from "@/components/auth/AuthRightPanel";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, startGoogleLogin } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [error, setError]           = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -28,96 +32,149 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl font-bold text-slate-800">Welcome back</h1>
-          <p className="text-sm text-slate-500">Sign in to your account</p>
+    <div className="min-h-screen flex bg-white">
+
+      {/* ── Left panel: Form ──────────────────────────────────────────── */}
+      <div className="relative flex flex-col w-full lg:w-[480px] lg:min-w-[480px] bg-white px-8 sm:px-12 py-10 justify-between border-r border-[#F3F4F6]">
+
+        {/* Logo */}
+        <div>
+          <Link href="/" className="inline-flex items-center gap-2.5 group">
+            <Image
+              src="/logo.svg"
+              width={32}
+              height={32}
+              alt="AI Inbox"
+              className="w-8 h-8 rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.10)]"
+            />
+            <span className="text-[15px] font-semibold text-[#111827] tracking-tight">
+              AI Inbox
+            </span>
+          </Link>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {/* Form area */}
+        <div className="w-full max-w-[360px] mx-auto py-12">
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="you@example.com"
-            />
+          {/* Heading */}
+          <div className="mb-8">
+            <h1 className="text-[26px] font-semibold text-[#111827] tracking-[-0.02em] leading-tight">
+              Welcome back
+            </h1>
+            <p className="text-[14px] text-[#9CA3AF] mt-1.5 leading-relaxed">
+              Sign in to continue to your inbox
+            </p>
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="••••••••"
-            />
-          </div>
+          {/* Error */}
+          {error && (
+            <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-[13px] text-red-600 flex items-center gap-2.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+              {error}
+            </div>
+          )}
 
+          {/* Google */}
           <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 transition-colors"
+            type="button"
+            onClick={startGoogleLogin}
+            className="w-full flex items-center justify-center gap-3 h-11 rounded-[10px] border border-[#E5E7EB] bg-white text-[13px] font-medium text-[#374151] hover:bg-[#F9FAFB] active:scale-[0.99] transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           >
-            {isSubmitting ? "Signing in…" : "Sign in"}
+            <GoogleIcon />
+            Continue with Google
           </button>
-        </form>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-slate-200" />
-          <span className="text-xs text-slate-400 uppercase tracking-wider">or</span>
-          <div className="flex-1 h-px bg-slate-200" />
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-[#F3F4F6]" />
+            <span className="text-[11px] text-[#D1D5DB] uppercase tracking-widest font-medium">or</span>
+            <div className="flex-1 h-px bg-[#F3F4F6]" />
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-[12.5px] font-medium text-[#374151] mb-1.5 tracking-tight">
+                Email address
+              </label>
+              <div className="relative">
+                <Mail
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#D1D5DB] pointer-events-none"
+                  strokeWidth={1.75}
+                />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-11 pl-[42px] pr-3.5 rounded-[10px] border border-[#E5E7EB] bg-[#FAFAFA] text-[13px] text-[#111827] placeholder-[#D1D5DB] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#111827]/8 focus:border-[#9CA3AF] transition-all duration-150"
+                  placeholder="you@example.com"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-[12.5px] font-medium text-[#374151] mb-1.5 tracking-tight">
+                Password
+              </label>
+              <div className="relative">
+                <Lock
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[15px] h-[15px] text-[#D1D5DB] pointer-events-none"
+                  strokeWidth={1.75}
+                />
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full h-11 pl-[42px] pr-3.5 rounded-[10px] border border-[#E5E7EB] bg-[#FAFAFA] text-[13px] text-[#111827] placeholder-[#D1D5DB] focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#111827]/8 focus:border-[#9CA3AF] transition-all duration-150"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-11 mt-1 rounded-[10px] bg-[#111827] text-[13px] font-semibold text-white hover:bg-[#1F2937] active:scale-[0.99] disabled:opacity-50 transition-all duration-150 flex items-center justify-center gap-2 shadow-[0_1px_3px_rgba(0,0,0,0.15),0_1px_2px_rgba(0,0,0,0.10)]"
+            >
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+
+          {/* Link */}
+          <p className="mt-7 text-center text-[13px] text-[#9CA3AF]">
+            Don&apos;t have an account?{" "}
+            <Link href="/auth/signup" className="font-medium text-[#111827] hover:underline underline-offset-2">
+              Create one
+            </Link>
+          </p>
         </div>
 
-        {/* Google */}
-        <button
-          type="button"
-          onClick={startGoogleLogin}
-          className="w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 transition-colors"
-        >
-          <GoogleIcon />
-          Continue with Google
-        </button>
-
-        {/* Signup link */}
-        <p className="text-center text-sm text-slate-500">
-          Don&apos;t have an account?{" "}
-          <a href="/auth/signup" className="font-medium text-blue-600 hover:underline">
-            Sign up
-          </a>
+        {/* Footer */}
+        <p className="text-[11px] text-[#D1D5DB] text-center">
+          © {new Date().getFullYear()} AI Inbox. All rights reserved.
         </p>
       </div>
+
+      {/* ── Right panel: decorative grid ─────────────────────────────── */}
+      <AuthRightPanel />
     </div>
   );
 }
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
       <path
         d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
         fill="#4285F4"
