@@ -67,7 +67,10 @@ export class EmailService implements OnModuleInit {
       secure: settings.imap.secure,
       auth: { user: dto.email, pass: dto.password },
       logger: false,
+      socketTimeout: 15_000,
+      greetingTimeout: 10_000,
     });
+    testClient.on('error', () => { /* swallow – handled in catch below */ });
 
     try {
       await testClient.connect();
@@ -76,6 +79,8 @@ export class EmailService implements OnModuleInit {
       throw new BadRequestException(
         `Cannot connect to IMAP server: ${(err as Error).message}`,
       );
+    } finally {
+      try { testClient.close(); } catch { /* already closed */ }
     }
 
     // Upsert platform_account
@@ -152,10 +157,17 @@ export class EmailService implements OnModuleInit {
         secure: settings.imap.secure,
         auth: { user: account.external_app_id!, pass: account.access_token },
         logger: false,
+        socketTimeout: 15_000,
+        greetingTimeout: 10_000,
       });
-      await client.connect();
-      await client.logout();
-      imapOk = true;
+      client.on('error', () => { /* swallow – handled in catch below */ });
+      try {
+        await client.connect();
+        await client.logout();
+        imapOk = true;
+      } finally {
+        try { client.close(); } catch { /* already closed */ }
+      }
     } catch {
       imapOk = false;
     }

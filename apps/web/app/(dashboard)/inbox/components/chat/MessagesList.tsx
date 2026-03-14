@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import type { Message } from "@/lib/types";
 import { MessageBubble } from "./MessageBubble";
 import { EmailMessageCard } from "@/app/(dashboard)/inbox/components/email/EmailMessageCard";
@@ -20,6 +20,10 @@ function withinGroupWindow(a: Message, b: Message): boolean {
 }
 
 export function MessagesList({ messages, isLoading, avatar }: MessagesListProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const prevConvIdRef = useRef<number | null>(null);
+
   /** For each message, compute whether it's the first / last in a
    *  consecutive same-sender group. This lets MessageBubble skip
    *  repeated avatars and collapse spacing. */
@@ -49,8 +53,43 @@ export function MessagesList({ messages, isLoading, avatar }: MessagesListProps)
   const isEmailThread =
     messages.length > 0 && messages.every((m) => m.platform === "email");
 
+  // ── Smart scroll ───────────────────────────────────────────────────────
+  // 1) Conversation change → instant jump to bottom
+  // 2) New message in same conversation → smooth scroll only if user is
+  //    already near the bottom (won't interrupt reading older messages)
+  const currentConvId = messages[0]?.conversation_id ?? null;
+
+  useEffect(() => {
+    if (isLoading || messages.length === 0) return;
+
+    const isNewConversation = currentConvId !== prevConvIdRef.current;
+    prevConvIdRef.current = currentConvId;
+
+    if (isNewConversation) {
+      // Opened a different conversation → jump instantly
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      });
+      return;
+    }
+
+    // Same conversation, new message arrived → scroll only if near bottom
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    if (distanceFromBottom < 150) {
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
+  }, [messages, isLoading, currentConvId]);
+
   return (
     <div
+      ref={scrollContainerRef}
       className={[
         "flex-1 overflow-y-auto bg-[var(--bg-page)]",
         // Email threads get slightly tighter horizontal padding so the cards
@@ -101,6 +140,9 @@ export function MessagesList({ messages, isLoading, avatar }: MessagesListProps)
             />
           );
         })}
+
+        {/* Invisible anchor at the bottom — scroll target */}
+        <div ref={bottomRef} />
       </div>
     </div>
   );

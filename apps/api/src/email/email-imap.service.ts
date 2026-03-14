@@ -118,6 +118,15 @@ export class EmailImapService {
         pass: account.access_token,
       },
       logger: false,
+      socketTimeout: 30_000,   // 30s socket timeout (prevents hanging)
+      greetingTimeout: 15_000, // 15s for initial greeting
+    });
+
+    // Catch emitted errors so they don't crash the process
+    client.on('error', (err: Error) => {
+      this.logger.warn(
+        `IMAP socket error for account ${accountId}: ${err.message}`,
+      );
     });
 
     try {
@@ -171,6 +180,13 @@ export class EmailImapService {
     } catch (err) {
       this.logger.error(`IMAP poll failed for account ${accountId}`, err);
       // Don't rethrow — polling should continue on next interval
+    } finally {
+      // Ensure the connection is always closed, even after errors
+      try {
+        client.close();
+      } catch {
+        // already closed — ignore
+      }
     }
   }
 
